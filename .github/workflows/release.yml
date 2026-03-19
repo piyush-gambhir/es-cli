@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean
+        env:
+          # NOTE: The default GITHUB_TOKEN does not have permission to push to
+          # other repos (e.g. the homebrew-tap repo). To enable Homebrew tap
+          # updates, replace GITHUB_TOKEN with a Personal Access Token (PAT)
+          # that has `repo` scope, stored as a repository secret (e.g.
+          # secrets.GH_PAT). Example:
+          #   GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
