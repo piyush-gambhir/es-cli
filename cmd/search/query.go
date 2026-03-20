@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -57,7 +58,27 @@ Examples:
 				body["from"] = from
 			}
 			if sort != "" {
-				body["sort"] = sort
+				// Parse "field:order" into ES sort format: [{"field": {"order": "order"}}]
+				// Supports multiple sorts comma-separated: "price:asc,year:desc"
+				var sortArr []interface{}
+				for _, s := range strings.Split(sort, ",") {
+					s = strings.TrimSpace(s)
+					if s == "" {
+						continue
+					}
+					parts := strings.SplitN(s, ":", 2)
+					field := parts[0]
+					order := "asc"
+					if len(parts) == 2 && parts[1] != "" {
+						order = parts[1]
+					}
+					sortArr = append(sortArr, map[string]interface{}{
+						field: map[string]interface{}{"order": order},
+					})
+				}
+				if len(sortArr) > 0 {
+					body["sort"] = sortArr
+				}
 			}
 
 			result, err := c.Search(context.Background(), args[0], body)
