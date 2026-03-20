@@ -110,6 +110,10 @@ func detectAuthMethod(rc *ResolvedConfig) string {
 	if rc.APIKeyID != "" && rc.APIKey != "" {
 		return "api_key"
 	}
+	if rc.APIKey != "" {
+		// Pre-encoded API key (no ID) — still api_key auth
+		return "api_key"
+	}
 	if rc.Username != "" && rc.Password != "" {
 		return "basic"
 	}

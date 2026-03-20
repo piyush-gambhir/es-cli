@@ -48,14 +48,15 @@ Examples:
 				return err
 			}
 
-			return output.Print(f.IOStreams.Out, f.Resolved.Output, result, &output.TableDef{
+			var countResult struct {
+				Count int64 `json:"count"`
+			}
+			_ = json.Unmarshal(result, &countResult)
+
+			// Wrap in a slice so the table formatter iterates once (not per-byte).
+			return output.Print(f.IOStreams.Out, f.Resolved.Output, []json.RawMessage{result}, &output.TableDef{
 				Headers: []string{"Count"},
 				RowFunc: func(item interface{}) []string {
-					raw := item.(json.RawMessage)
-					var countResult struct {
-						Count int64 `json:"count"`
-					}
-					_ = json.Unmarshal(raw, &countResult)
 					return []string{fmt.Sprintf("%d", countResult.Count)}
 				},
 			})

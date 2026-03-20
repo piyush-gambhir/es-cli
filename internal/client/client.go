@@ -152,8 +152,14 @@ func (c *Client) setAuth(req *http.Request) {
 	case "basic":
 		req.SetBasicAuth(c.Username, c.Password)
 	case "api_key":
-		encoded := base64.StdEncoding.EncodeToString([]byte(c.APIKeyID + ":" + c.APIKey))
-		req.Header.Set("Authorization", "ApiKey "+encoded)
+		if c.APIKeyID != "" {
+			// ID + secret provided separately — encode them
+			encoded := base64.StdEncoding.EncodeToString([]byte(c.APIKeyID + ":" + c.APIKey))
+			req.Header.Set("Authorization", "ApiKey "+encoded)
+		} else {
+			// Pre-encoded API key (just the secret, already base64)
+			req.Header.Set("Authorization", "ApiKey "+c.APIKey)
+		}
 	case "bearer":
 		req.Header.Set("Authorization", "Bearer "+c.Token)
 	default:
@@ -163,6 +169,9 @@ func (c *Client) setAuth(req *http.Request) {
 		} else if c.APIKeyID != "" && c.APIKey != "" {
 			encoded := base64.StdEncoding.EncodeToString([]byte(c.APIKeyID + ":" + c.APIKey))
 			req.Header.Set("Authorization", "ApiKey "+encoded)
+		} else if c.APIKey != "" {
+			// Pre-encoded API key without ID
+			req.Header.Set("Authorization", "ApiKey "+c.APIKey)
 		} else if c.Username != "" && c.Password != "" {
 			req.SetBasicAuth(c.Username, c.Password)
 		}
