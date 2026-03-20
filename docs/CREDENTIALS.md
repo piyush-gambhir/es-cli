@@ -127,11 +127,35 @@ curl -X POST "https://localhost:9200/_security/user/cli-user" \
   }'
 ```
 
-Via Kibana:
+Via Kibana (step-by-step):
 
-1. Go to **Stack Management > Security > Users**.
-2. Click **Create user**.
-3. Fill in username, password, and assign appropriate roles.
+1. Open Kibana in your browser (e.g., `http://localhost:5601`).
+2. Click the **hamburger menu** (top-left) and scroll down to **Management**.
+3. Click **Stack Management**.
+4. In the left sidebar under **Security**, click **Users**.
+5. Click the **Create user** button.
+6. Fill in the form:
+   - **Username:** e.g., `cli-readonly` or `cli-admin`
+   - **Full name:** e.g., `CLI Read-Only User`
+   - **Email:** optional
+   - **Password:** enter a strong password and confirm it
+   - **Roles:** click the dropdown and select one or more roles (see table below)
+7. Click **Create user**.
+8. Use the new username and password with `es login` or environment variables.
+
+Creating a custom role (for fine-grained access):
+
+1. In **Stack Management > Security**, click **Roles** (instead of Users).
+2. Click **Create role**.
+3. Give it a name (e.g., `cli-logs-reader`).
+4. Under **Index privileges**, add the indices this role can access:
+   - **Indices:** e.g., `logs-*`
+   - **Privileges:** e.g., `read`, `view_index_metadata`
+5. Under **Cluster privileges**, add as needed:
+   - `monitor` for cluster health/stats
+   - `manage_index_templates` for template management
+6. Click **Create role**.
+7. Then create a user (above) and assign this custom role.
 
 Common built-in roles:
 
