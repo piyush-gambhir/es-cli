@@ -17,7 +17,7 @@ Designed for both human operators and coding agents (LLMs). All commands support
 - TLS support -- custom CA certificates and insecure mode
 - Safety features -- read-only mode, confirmation prompts, idempotent flags
 - Auto-update -- checks for new versions, `es update` to self-update
-- Agent-friendly -- comprehensive help text, structured output for LLM coding agents
+- Agent-friendly -- comprehensive help text, structured output for LLM coding agents (`CLAUDE.md` guide, `SKILL.md` for Cursor-style skills)
 - Cross-platform -- macOS, Linux, Windows (amd64 and arm64)
 
 ## Installation

@@ -1,5 +1,7 @@
 # Elasticsearch CLI - Agent Guide
 
+> **Contributors:** When you add or change commands, flags, auth, or output, update this file in the same PR as the code. See `CONTRIBUTING.md` → *Documentation and agent materials*, and keep `SKILL.md` aligned if the CLI’s described scope changes.
+
 ## Quick Reference
 
 - **Binary:** `es`

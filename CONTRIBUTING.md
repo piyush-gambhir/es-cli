@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This guide will help you get starte
 
 ### Prerequisites
 
-- Go 1.22 or later
+- Go version matching `go.mod` (see the `go` directive)
 - Make
 - Git
 
@@ -160,10 +160,24 @@ make fmt     # gofmt
 
 6. **Add a test** in the corresponding `_test.go` file using `httptest.NewServer`.
 
-7. **Update documentation**:
-   - Add a `Long` description with examples to the command
-   - Update `README.md` with the new command
-   - Update `CLAUDE.md` with the new command
+7. **Update documentation and agent materials** (same PR as the code — see [Documentation and agent materials](#documentation-and-agent-materials)):
+   - Add a `Long` description with examples on the command
+   - Update `README.md` if the feature is user-visible in overview / examples
+   - Update `CLAUDE.md` with workflows, flags, and examples (especially `-o json` for agents)
+   - Update `SKILL.md` if you change the CLI’s scope or anything called out in the skill’s description
+   - Update `docs/` (e.g. `docs/CREDENTIALS.md`) if auth, env vars, or config paths change
+
+## Documentation and agent materials
+
+Any change to **commands, subcommands, flags, defaults, auth, config paths, or output shape** should ship with matching docs in the **same change** (or a follow-up PR immediately after):
+
+| Audience | What to update |
+|----------|----------------|
+| End users | `README.md`, command `Long` / `--help` text |
+| Agents / LLMs | `CLAUDE.md` (full guide), `SKILL.md` (triggers + short orientation; must stay consistent with `CLAUDE.md`) |
+| Deep topics | `docs/*.md` where relevant |
+
+**Discovery:** Cobra provides `-h` / `--help` on every command; keep `Short`, `Long`, and flag help strings accurate — agents rely on them when the repo isn’t open.
 
 ## Code Style
 
@@ -196,9 +210,10 @@ chore: update dependencies
 
 1. Fork the repo and create a feature branch
 2. Make your changes with tests
-3. Run `make test` and `make vet` to ensure everything passes
-4. Commit with a clear message
-5. Open a PR against `main`
+3. Update `README.md`, `CLAUDE.md`, `SKILL.md` (if applicable), and `docs/` per [Documentation and agent materials](#documentation-and-agent-materials)
+4. Run `make test` and `make vet` to ensure everything passes
+5. Commit with a clear message
+6. Open a PR against `main`
 
 ## Releasing
 
