@@ -1,0 +1,1341 @@
+# Elasticsearch CLI
+
+> `es` is a fast, cross-platform command-line interface for managing Elasticsearch clusters — indices, documents, search, aliases, templates, ingest pipelines, ILM policies, nodes, and shards — with table/JSON/YAML output and agent-friendly safety flags.
+
+This document is the complete, authoritative manual for the `es` CLI. It is intended to be fetched and read by an LLM or coding agent so it can drive the tool correctly with zero prior knowledge. Everything below reflects the actual command surface of the tool.
+
+## About
+
+`es` (the Elasticsearch CLI) is a command-line client for operating Elasticsearch clusters from a terminal or from automation. It is designed for both human operators and coding agents (LLMs): every command supports `--help`, and `-o json` / `-o yaml` produce machine-readable output.
+
+- Binary name: `es`
+- Implementation: a single self-contained Go binary (built on the Cobra command framework).
+- Supported platforms: macOS, Linux, and Windows, on both `amd64` and `arm64`.
+- License: MIT.
+
+**Independent / unofficial.** This is an independent, community-built tool. It is **not** an official Elastic product and is **not** affiliated with, endorsed by, or sponsored by Elasticsearch B.V. or Elastic N.V. "Elasticsearch" is a trademark of Elasticsearch B.V., used here only to describe what the tool talks to.
+
+## Links
+
+- Home: https://es-cli.pages.dev/
+- Source: https://github.com/piyush-gambhir/es-cli
+- Issues: https://github.com/piyush-gambhir/es-cli/issues
+- Privacy Policy: https://es-cli.pages.dev/privacy-policy
+- Terms of Service: https://es-cli.pages.dev/terms-of-service
+- Contact: https://es-cli.pages.dev/contact
+
+## Install
+
+Pick whichever method fits your environment. All of them produce the same `es` binary.
+
+**Go install** (requires a Go toolchain):
+
+```bash
+go install github.com/piyush-gambhir/es-cli@latest
+```
+
+**Prebuilt release binary** — download the archive for your OS/arch from the GitHub Releases page and place the `es` binary on your `PATH`:
+
+```
+https://github.com/piyush-gambhir/es-cli/releases
+```
+
+Release archives are named `es-cli_<os>_<arch>.tar.gz` (for example `es-cli_darwin_arm64.tar.gz`, `es-cli_linux_amd64.tar.gz`) and are published with a `checksums.txt` file for SHA-256 verification.
+
+**From source** (clone and build/install with the Makefile):
+
+```bash
+git clone https://github.com/piyush-gambhir/es-cli.git
+cd es-cli
+
+make install   # go install into your GOBIN/GOPATH bin
+# or
+make build     # produces a local ./es binary in the repo
+```
+
+**Self-update** — once `es` is installed from a release, it can update itself in place (downloads the matching release asset, verifies the SHA-256 checksum, and atomically replaces the running binary):
+
+```bash
+es update          # check and, if confirmed, install the latest release
+es update --check  # only report whether an update is available
+```
+
+> Self-update is disabled for development builds (when the version is `dev`). Build from source or install a release to enable it.
+
+## Authentication
+
+`es` talks to a single Elasticsearch cluster per invocation, identified by a base URL plus credentials. It supports **three authentication methods**:
+
+1. **Basic auth** — username + password.
+2. **API key** — an API key ID + API key secret (or a single pre-encoded API key).
+3. **Bearer token** — an OAuth/bearer token.
+
+If the authentication method is not stated explicitly (no `auth_method` in the profile), it is **auto-detected** from whichever credentials are present, in this order: bearer token → API key → basic auth.
+
+### Interactive login
+
+`es login` walks you through connecting to a cluster and saves the result as a named profile:
+
+```bash
+es login
+```
+
+It prompts for: the cluster URL, the auth method (`basic` / `api-key` / `bearer`), the matching credentials, an optional CA certificate path, and whether to skip TLS verification. It then **tests the connection** against the cluster (and reports the cluster name and version) before asking for a profile name (default: `default`) and writing it to the config file. The new profile is set as the current profile.
+
+> `es login` is interactive and will fail under `--no-input` / `ES_NO_INPUT`. For non-interactive setups (CI, agents), use environment variables or flags instead of `es login`.
+
+### Config file
+
+Profiles and defaults are stored in a YAML config file:
+
+- Path: `~/.config/es-cli/config.yaml`
+- If `XDG_CONFIG_HOME` is set, the directory is `$XDG_CONFIG_HOME/es-cli/config.yaml` instead.
+- The file is created automatically (mode `0600`) by `es login` or `es config set`.
+
+See **Configuration & profiles** below for the file format.
+
+### Environment variables
+
+| Variable | Purpose |
+|----------|---------|
+| `ES_URL` | Elasticsearch base URL (e.g. `https://host:9200`) |
+| `ES_USERNAME` | Username for basic auth |
+| `ES_PASSWORD` | Password for basic auth |
+| `ES_API_KEY_ID` | API key ID |
+| `ES_API_KEY` | API key secret (or a pre-encoded API key on its own) |
+| `ES_TOKEN` | Bearer token |
+| `ES_CA_CERT` | Path to a CA certificate (PEM) for TLS |
+| `ES_INSECURE` | Skip TLS verification when set to `true` or `1` |
+| `ES_READ_ONLY` | Block all write/mutating operations when `true` or `1` |
+| `ES_NO_INPUT` | Disable all interactive prompts when set (non-empty) |
+| `ES_QUIET` | Suppress informational output when set (non-empty) |
+| `ES_VERBOSE` | Enable verbose HTTP logging when set (non-empty) |
+
+### Precedence (resolution order)
+
+Connection and credential values are resolved field-by-field; the first non-empty source wins:
+
+```
+CLI flags  >  environment variables  >  selected profile  >  built-in defaults
+```
+
+This applies to `url`, `username`, `password`, `api-key-id`, `api-key`, `token`, and `ca-cert`. Notes on the non-string settings:
+
+- **`insecure`**: the `--insecure/-k` flag (if passed) wins; otherwise `ES_INSECURE`; otherwise the profile's `insecure` value.
+- **`read-only`**: resolved as profile `read_only` first, then **overridden by** the `ES_READ_ONLY` env var; the `--read-only` flag overrides both when explicitly set on the command line.
+- **`output`**: the `--output/-o` flag wins; otherwise `defaults.output` from the config file; otherwise `table`.
+
+### Multi-account / profiles
+
+You can store several clusters as named profiles and switch between them. The active profile is `current_profile` in the config file. Override per-command with `--profile <name>`. See **Configuration & profiles**.
+
+```bash
+es login                              # create a profile (e.g. "prod")
+es config list-profiles               # see all profiles, * marks the current one
+es config use-profile staging         # switch the default profile
+es cluster health --profile prod      # use a specific profile for one command
+```
+
+## Global flags
+
+These persistent flags are accepted by every command:
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--output` | `-o` | Output format: `table` (default), `json`, or `yaml` |
+| `--profile` | | Configuration profile to use |
+| `--url` | | Elasticsearch URL override |
+| `--username` | `-u` | Username for basic auth |
+| `--password` | `-p` | Password for basic auth |
+| `--api-key-id` | | API key ID |
+| `--api-key` | | API key secret |
+| `--token` | | Bearer token |
+| `--ca-cert` | | Path to a CA certificate (PEM) for TLS |
+| `--insecure` | `-k` | Skip TLS certificate verification (not recommended in production) |
+| `--read-only` | | Block all mutating operations (safety mode for agents); use `--read-only=false` to force-disable |
+| `--no-input` | | Disable all interactive prompts (for CI/agent use) |
+| `--quiet` | `-q` | Suppress informational (non-data) output |
+| `--verbose` | `-v` | Enable verbose HTTP logging (written to stderr) |
+
+## Commands
+
+The command tree is:
+
+```
+es
+├── login                         interactive auth setup → saves a profile
+├── version                       print version / commit / build date
+├── update                        self-update from GitHub Releases
+├── completion                    generate shell completion scripts
+├── config                        manage CLI configuration & profiles
+│   ├── view
+│   ├── set <key> <value>
+│   ├── use-profile <name>
+│   └── list-profiles
+├── cluster                       cluster health, stats, settings, allocation
+│   ├── health
+│   ├── stats
+│   ├── settings
+│   ├── pending-tasks
+│   └── allocation-explain
+├── node            (alias: nodes)
+│   ├── list        (alias: ls)
+│   ├── info <node-id>
+│   ├── stats [node-id]
+│   └── hot-threads [node-id]
+├── shard           (alias: shards)
+│   └── list        (alias: ls)
+├── index           (aliases: indices, idx)
+│   ├── list        (alias: ls)
+│   ├── create <index>
+│   ├── get <index>
+│   ├── delete <index>
+│   ├── open <index>
+│   ├── close <index>
+│   ├── settings <index>
+│   ├── mappings <index>
+│   ├── stats <index>
+│   ├── rollover <alias>
+│   ├── reindex
+│   ├── alias               (alias: aliases)
+│   │   ├── list   (alias: ls)
+│   │   ├── create <index> <alias>
+│   │   └── delete <index> <alias>
+│   ├── template            (aliases: templates, tmpl)
+│   │   ├── list   (alias: ls)
+│   │   ├── get <name>
+│   │   ├── create <name>
+│   │   └── delete <name>
+│   └── component-template  (alias: ctmpl)
+│       ├── list   (alias: ls)
+│       ├── get <name>
+│       ├── create <name>
+│       └── delete <name>
+├── search          (alias: query)
+│   ├── query <index>
+│   ├── sql
+│   ├── count <index>
+│   ├── msearch
+│   └── field-caps <index>
+├── document        (aliases: doc, docs)
+│   ├── get <index> <id>
+│   ├── index <index>
+│   ├── delete <index> <id>
+│   ├── bulk
+│   └── mget <index>
+├── ingest          (alias: pipeline)
+│   ├── list
+│   ├── get <name>
+│   ├── create <name>
+│   ├── delete <name>
+│   └── simulate <name>
+└── ilm
+    ├── list
+    ├── get <policy>
+    ├── create <name>
+    ├── delete <name>
+    └── explain <index>
+```
+
+Every command and sub-command also responds to `-h` / `--help`. Commands marked below as **(mutating)** are blocked when read-only mode is active. Flags shown per-command are in addition to the global flags above.
+
+### Top-level commands
+
+#### `es login`
+
+```bash
+es login
+```
+
+Interactively configure, test, and save a connection profile. Prompts for URL, auth method, credentials, and TLS options; verifies connectivity; then saves a named profile and sets it as current. Fails if `--no-input` is set.
+
+#### `es version`
+
+```bash
+es version
+```
+
+Print the CLI version, commit hash, and build date.
+
+#### `es update`
+
+```bash
+es update [--check]
+```
+
+Check for and install the latest release from GitHub. Downloads the OS/arch-matched archive, verifies its SHA-256 checksum, and atomically replaces the running binary (you may need elevated permissions if `es` is installed in a system path).
+
+- `--check` — only report whether an update is available; do not install.
+
+```bash
+es update            # prompt and install if a newer version exists
+es update --check    # just check
+```
+
+#### `es completion`
+
+```bash
+es completion [bash|zsh|fish|powershell]
+```
+
+Generate a shell completion script for the given shell (exactly one argument, must be one of `bash`, `zsh`, `fish`, `powershell`).
+
+```bash
+# Bash (current shell)
+source <(es completion bash)
+
+# Zsh (install once)
+es completion zsh > "${fpath[1]}/_es"
+
+# Fish
+es completion fish | source
+
+# PowerShell
+es completion powershell | Out-String | Invoke-Expression
+```
+
+### `es config` — manage CLI configuration
+
+View and modify the `es` config file and profiles.
+
+#### `es config view`
+
+```bash
+es config view
+```
+
+Print the entire current configuration as YAML (current profile, all profiles, defaults). Useful for confirming which profile is active and what connection settings are in effect.
+
+#### `es config set`
+
+```bash
+es config set <key> <value>
+```
+
+Set a configuration value. Supported keys:
+
+- `defaults.output` — default output format; value must be `table`, `json`, or `yaml`.
+- `current_profile` — name of the active profile (the profile must already exist).
+
+```bash
+es config set defaults.output json
+es config set current_profile prod
+```
+
+#### `es config use-profile`
+
+```bash
+es config use-profile <name>
+```
+
+Switch the active profile (the profile must already exist). Equivalent to `es config set current_profile <name>`.
+
+```bash
+es config use-profile staging
+```
+
+#### `es config list-profiles`
+
+```bash
+es config list-profiles
+```
+
+List all configured profiles. The current profile is marked with `*`, and each line shows the URL and auth method (or `auto` if the method is auto-detected).
+
+```bash
+es config list-profiles
+# * prod (https://es.prod.example.com:9200, basic)
+#   staging (https://es.staging.example.com:9200, api_key)
+```
+
+### `es cluster` — manage the Elasticsearch cluster
+
+View cluster health, stats, settings, pending tasks, and allocation information.
+
+#### `es cluster health`
+
+```bash
+es cluster health [flags]
+```
+
+Show overall cluster health: cluster name, status (green/yellow/red), node count, active shards, and other health indicators.
+
+```bash
+es cluster health
+es cluster health -o json
+```
+
+#### `es cluster stats`
+
+```bash
+es cluster stats [flags]
+```
+
+Show detailed cluster statistics (nodes, indices, shards, storage, and more).
+
+```bash
+es cluster stats -o json
+```
+
+#### `es cluster settings`
+
+```bash
+es cluster settings [flags]
+```
+
+Show cluster settings (persistent and transient). By default only explicitly configured settings are shown.
+
+- `--include-defaults` — also include default setting values.
+
+```bash
+es cluster settings
+es cluster settings --include-defaults -o json
+```
+
+#### `es cluster pending-tasks`
+
+```bash
+es cluster pending-tasks [flags]
+```
+
+List pending cluster-level changes that have not yet been executed.
+
+```bash
+es cluster pending-tasks -o json
+```
+
+#### `es cluster allocation-explain`
+
+```bash
+es cluster allocation-explain [flags]
+```
+
+Explain why a shard is unassigned or cannot be allocated. With no flags, explains the first unassigned shard found.
+
+- `--index <name>` — index name to explain.
+- `--shard <int>` — shard number (default `0`).
+- `--primary` — explain the primary shard (default is the replica).
+
+```bash
+es cluster allocation-explain
+es cluster allocation-explain --index my-index --shard 0 --primary -o json
+```
+
+### `es node` — manage cluster nodes (alias: `nodes`)
+
+#### `es node list`
+
+```bash
+es node list [flags]        # alias: es node ls
+```
+
+List all nodes (IP, heap/RAM usage, CPU, load averages, roles, master status).
+
+```bash
+es node list -o json
+```
+
+#### `es node info`
+
+```bash
+es node info <node-id> [flags]
+```
+
+Show detailed information for a specific node (by node ID or name).
+
+```bash
+es node info node-1 -o json
+```
+
+#### `es node stats`
+
+```bash
+es node stats [node-id] [flags]
+```
+
+Show statistics for one node (if `node-id` is given) or all nodes. Available metrics include: `indices`, `os`, `process`, `jvm`, `thread_pool`, `fs`, `transport`, `http`, `breaker`.
+
+- `--metric <name>` — return only a specific metric (e.g. `jvm`, `os`, `indices`).
+
+```bash
+es node stats -o json
+es node stats node-1 -o json
+es node stats --metric jvm -o json
+```
+
+#### `es node hot-threads`
+
+```bash
+es node hot-threads [node-id]
+```
+
+Show current hot threads (threads consuming significant CPU) for one or all nodes.
+
+> Output is **always plain text**, regardless of the `--output` flag.
+
+```bash
+es node hot-threads
+es node hot-threads node-1
+```
+
+### `es shard` — view shard information (alias: `shards`)
+
+#### `es shard list`
+
+```bash
+es shard list [flags]        # alias: es shard ls
+```
+
+List shards across the cluster: index, shard number, primary/replica, state, doc count, store size, IP, and node.
+
+- `--index <name>` — filter shards by index name.
+
+```bash
+es shard list -o json
+es shard list --index my-index
+```
+
+### `es index` — manage indices (aliases: `indices`, `idx`)
+
+Create, delete, open, close, and manage indices, plus their aliases, templates, and component templates.
+
+#### `es index list`
+
+```bash
+es index list [flags]        # alias: es index ls
+```
+
+List indices (name, health, status, UUID, primary/replica counts, doc count, store size).
+
+- `--pattern <glob>` — filter by index name pattern (supports wildcards).
+- `--health <green|yellow|red>` — filter by health.
+- `--status <open|close>` — filter by status.
+
+```bash
+es index list -o json
+es index list --pattern "logs-*"
+es index list --health yellow
+es index list --status open
+```
+
+#### `es index create` (mutating)
+
+```bash
+es index create <index> [flags]
+```
+
+Create a new index, optionally with settings and mappings from a file.
+
+- `-f, --file <path>` — JSON/YAML body with settings/mappings (use `-` for stdin).
+- `--if-not-exists` — succeed silently if the index already exists (409 conflict is swallowed).
+
+```bash
+es index create my-index
+es index create my-index -f settings.json
+es index create my-index --if-not-exists
+```
+
+#### `es index get`
+
+```bash
+es index get <index> [flags]
+```
+
+Show the full index definition (settings, mappings, aliases).
+
+```bash
+es index get my-index -o json
+```
+
+#### `es index delete` (mutating)
+
+```bash
+es index delete <index> [flags]
+```
+
+Permanently delete an index and all its data. Prompts for confirmation unless `--confirm` is set.
+
+- `--confirm` — skip the confirmation prompt.
+- `--if-exists` — succeed silently if the index does not exist (404 is swallowed).
+
+```bash
+es index delete my-index
+es index delete my-index --confirm
+es index delete my-index --confirm --if-exists
+```
+
+#### `es index open` (mutating)
+
+```bash
+es index open <index>
+```
+
+Open a previously closed index, making it available for reads and writes.
+
+```bash
+es index open my-index
+```
+
+#### `es index close` (mutating)
+
+```bash
+es index close <index>
+```
+
+Close an index, blocking reads and writes (a closed index uses minimal cluster resources). Reopen with `es index open`.
+
+```bash
+es index close my-index
+```
+
+#### `es index settings` (mutating when `--set` is used)
+
+```bash
+es index settings <index> [flags]
+```
+
+Without `--set`, display current index settings. With `--set`, update settings.
+
+- `--set <key=value>` — set a setting; repeatable for multiple settings.
+
+```bash
+es index settings my-index -o json
+es index settings my-index --set number_of_replicas=2
+es index settings my-index --set number_of_replicas=2 --set refresh_interval=30s
+```
+
+#### `es index mappings` (mutating when `-f` is used)
+
+```bash
+es index mappings <index> [flags]
+```
+
+Without `-f`, display current mappings. With `-f`, update mappings from a file.
+
+- `-f, --file <path>` — JSON/YAML mappings body (use `-` for stdin).
+
+```bash
+es index mappings my-index -o json
+es index mappings my-index -f mappings.json
+cat mappings.json | es index mappings my-index -f -
+```
+
+#### `es index stats`
+
+```bash
+es index stats <index> [flags]
+```
+
+Show index statistics (doc counts, store size, indexing/search rates, etc.).
+
+```bash
+es index stats my-index -o json
+```
+
+#### `es index rollover` (mutating)
+
+```bash
+es index rollover <alias> [flags]
+```
+
+Roll over an index alias to a new index, optionally based on conditions.
+
+- `-f, --file <path>` — JSON/YAML rollover conditions (use `-` for stdin).
+
+```bash
+es index rollover my-alias
+es index rollover my-alias -f conditions.json
+```
+
+#### `es index reindex` (mutating)
+
+```bash
+es index reindex -f <path>
+```
+
+Copy documents from a source index to a destination index. The reindex body (with `source` and `dest`) is **required** via `-f`.
+
+- `-f, --file <path>` — JSON/YAML reindex body (use `-` for stdin). Required.
+
+```bash
+es index reindex -f reindex.json
+cat reindex.json | es index reindex -f -
+```
+
+#### `es index alias` — manage index aliases (alias: `aliases`)
+
+##### `es index alias list`
+
+```bash
+es index alias list [flags]        # alias: es index alias ls
+```
+
+List index aliases.
+
+- `--index <name>` — filter aliases by index name.
+
+```bash
+es index alias list -o json
+es index alias list --index my-index
+```
+
+##### `es index alias create` (mutating)
+
+```bash
+es index alias create <index> <alias>
+```
+
+Create an alias pointing at an index.
+
+```bash
+es index alias create my-index my-alias
+```
+
+##### `es index alias delete` (mutating)
+
+```bash
+es index alias delete <index> <alias> [flags]
+```
+
+Remove an alias from an index. Prompts for confirmation unless `--confirm` is set.
+
+- `--confirm` — skip the confirmation prompt.
+
+```bash
+es index alias delete my-index my-alias
+es index alias delete my-index my-alias --confirm
+```
+
+#### `es index template` — manage index templates (aliases: `templates`, `tmpl`)
+
+##### `es index template list`
+
+```bash
+es index template list [flags]        # alias: es index template ls
+```
+
+List index templates (name, index patterns, order, version).
+
+```bash
+es index template list -o json
+```
+
+##### `es index template get`
+
+```bash
+es index template get <name> [flags]
+```
+
+Show the full definition of an index template.
+
+```bash
+es index template get my-template -o json
+```
+
+##### `es index template create` (mutating)
+
+```bash
+es index template create <name> -f <path>
+```
+
+Create or update an index template from a file (`-f` is required).
+
+- `-f, --file <path>` — JSON/YAML template body (use `-` for stdin). Required.
+
+```bash
+es index template create my-template -f template.json
+cat template.json | es index template create my-template -f -
+```
+
+##### `es index template delete` (mutating)
+
+```bash
+es index template delete <name> [flags]
+```
+
+Delete an index template. Prompts for confirmation unless `--confirm` is set.
+
+- `--confirm` — skip the confirmation prompt.
+- `--if-exists` — succeed silently if the template does not exist.
+
+```bash
+es index template delete my-template --confirm
+es index template delete my-template --confirm --if-exists
+```
+
+#### `es index component-template` — manage component templates (alias: `ctmpl`)
+
+##### `es index component-template list`
+
+```bash
+es index component-template list [flags]        # alias: ... ls
+```
+
+List all component templates.
+
+```bash
+es index component-template list -o json
+```
+
+##### `es index component-template get`
+
+```bash
+es index component-template get <name> [flags]
+```
+
+Show the full definition of a component template.
+
+```bash
+es index component-template get my-component -o json
+```
+
+##### `es index component-template create` (mutating)
+
+```bash
+es index component-template create <name> -f <path>
+```
+
+Create or update a component template from a file (`-f` is required).
+
+- `-f, --file <path>` — JSON/YAML component template body (use `-` for stdin). Required.
+
+```bash
+es index component-template create my-component -f component.json
+cat component.json | es index component-template create my-component -f -
+```
+
+##### `es index component-template delete` (mutating)
+
+```bash
+es index component-template delete <name> [flags]
+```
+
+Delete a component template. Prompts for confirmation unless `--confirm` is set.
+
+- `--confirm` — skip the confirmation prompt.
+- `--if-exists` — succeed silently if the component template does not exist.
+
+```bash
+es index component-template delete my-component --confirm
+es index component-template delete my-component --confirm --if-exists
+```
+
+### `es search` — search and query (alias: `query`)
+
+#### `es search query`
+
+```bash
+es search query <index> [flags]
+```
+
+Run a Query DSL search against an index. The query body comes from `-f`; the `--size`, `--from`, and `--sort` flags are merged into the request body. With no file, runs an empty (match-all) query.
+
+- `-f, --file <path>` — JSON/YAML query body (use `-` for stdin).
+- `--size <int>` — number of hits to return (default `10`; only applied when explicitly set).
+- `--from <int>` — starting document offset (default `0`; only applied when explicitly set).
+- `--sort <expr>` — sort expression `field:order`; comma-separated for multiple sorts (e.g. `price:asc,year:desc`). Order defaults to `asc` if omitted.
+
+```bash
+es search query my-index -f query.json
+es search query my-index -f query.json --size 20 --from 40
+es search query my-index -f query.json --sort timestamp:desc
+es search query my-index -o json          # match-all
+```
+
+#### `es search sql`
+
+```bash
+es search sql [flags]
+```
+
+Run an Elasticsearch SQL query. Provide the SQL inline with `--query` or from a file with `-f` (one is required).
+
+- `--query <sql>` — inline SQL query string.
+- `-f, --file <path>` — read the SQL query from a file (use `-` for stdin).
+
+```bash
+es search sql --query "SELECT * FROM my-index LIMIT 10"
+es search sql -f query.sql
+```
+
+#### `es search count`
+
+```bash
+es search count <index> [flags]
+```
+
+Count documents in an index, optionally filtered by a query.
+
+- `-f, --file <path>` — JSON/YAML query body to filter the count (use `-` for stdin).
+
+```bash
+es search count my-index -o json
+es search count my-index -f query.json
+```
+
+#### `es search msearch`
+
+```bash
+es search msearch -f <path>
+```
+
+Execute multiple search requests in one call using NDJSON (alternating header and body lines). The file is **required**.
+
+- `-f, --file <path>` — NDJSON request file (use `-` for stdin). Required.
+
+```bash
+es search msearch -f requests.ndjson
+cat requests.ndjson | es search msearch -f -
+```
+
+#### `es search field-caps`
+
+```bash
+es search field-caps <index> [flags]
+```
+
+Show field capabilities for an index.
+
+- `--fields <list>` — comma-separated list of fields (use `*` for all).
+
+```bash
+es search field-caps my-index --fields "*"
+es search field-caps my-index --fields "timestamp,message,level"
+```
+
+### `es document` — manage documents (aliases: `doc`, `docs`)
+
+#### `es document get`
+
+```bash
+es document get <index> <id> [flags]
+```
+
+Retrieve a single document by ID.
+
+```bash
+es document get my-index abc123 -o json
+es doc get my-index abc123 -o json
+```
+
+#### `es document index` (mutating)
+
+```bash
+es document index <index> -f <path> [flags]
+```
+
+Index (create or update) a document. The body is **required** via `-f`. If `--id` is given, the document is indexed with that ID (PUT); otherwise an ID is auto-generated (POST).
+
+- `-f, --file <path>` — JSON/YAML document body (use `-` for stdin). Required.
+- `--id <id>` — document ID (auto-generated if not set).
+
+```bash
+es document index my-index -f doc.json
+es document index my-index -f doc.json --id abc123
+echo '{"name":"test"}' | es doc index my-index -f -
+```
+
+#### `es document delete` (mutating)
+
+```bash
+es document delete <index> <id> [flags]
+```
+
+Delete a single document by ID. Prompts for confirmation unless `--confirm` is set.
+
+- `--confirm` — skip the confirmation prompt.
+- `--if-exists` — succeed silently if the document does not exist (404).
+
+```bash
+es document delete my-index abc123
+es document delete my-index abc123 --confirm
+es document delete my-index abc123 --confirm --if-exists
+```
+
+#### `es document bulk` (mutating)
+
+```bash
+es document bulk -f <path> [flags]
+```
+
+Bulk index documents using NDJSON (alternating action and source lines). The file is **required**.
+
+- `-f, --file <path>` — NDJSON file (use `-` for stdin). Required.
+- `--index <name>` — default index for bulk operations.
+
+```bash
+es document bulk -f bulk.ndjson
+es document bulk -f bulk.ndjson --index my-index
+cat bulk.ndjson | es doc bulk -f -
+```
+
+#### `es document mget`
+
+```bash
+es document mget <index> -f <path>
+```
+
+Retrieve multiple documents in one request. The IDs body is **required** via `-f`.
+
+- `-f, --file <path>` — JSON/YAML body of document IDs (use `-` for stdin). Required.
+
+```bash
+es document mget my-index -f ids.json
+echo '{"ids":["1","2","3"]}' | es doc mget my-index -f -
+```
+
+### `es ingest` — manage ingest pipelines (alias: `pipeline`)
+
+#### `es ingest list`
+
+```bash
+es ingest list [flags]
+```
+
+List all ingest pipelines.
+
+```bash
+es ingest list -o json
+```
+
+#### `es ingest get`
+
+```bash
+es ingest get <name> [flags]
+```
+
+Get the definition of an ingest pipeline.
+
+```bash
+es ingest get my-pipeline -o json
+```
+
+#### `es ingest create` (mutating)
+
+```bash
+es ingest create <name> -f <path> [flags]
+```
+
+Create an ingest pipeline from a definition file (`-f` is required).
+
+- `-f, --file <path>` — JSON/YAML pipeline definition (use `-` for stdin). Required.
+- `--if-not-exists` — succeed silently if the pipeline already exists.
+
+```bash
+es ingest create my-pipeline -f pipeline.json
+es ingest create my-pipeline -f pipeline.json --if-not-exists
+```
+
+#### `es ingest delete` (mutating)
+
+```bash
+es ingest delete <name> [flags]
+```
+
+Delete an ingest pipeline. Prompts for confirmation unless `--confirm` is set.
+
+- `--confirm` — skip the confirmation prompt.
+- `--if-exists` — succeed silently if the pipeline does not exist.
+
+```bash
+es ingest delete my-pipeline --confirm
+es ingest delete my-pipeline --confirm --if-exists
+```
+
+#### `es ingest simulate`
+
+```bash
+es ingest simulate <name> -f <path>
+```
+
+Simulate an ingest pipeline against sample documents. The documents body is **required** via `-f`.
+
+- `-f, --file <path>` — JSON/YAML body of sample documents (use `-` for stdin). Required.
+
+```bash
+es ingest simulate my-pipeline -f docs.json
+echo '{"docs":[{"_source":{"message":"test"}}]}' | es ingest simulate my-pipeline -f -
+```
+
+### `es ilm` — manage Index Lifecycle Management (ILM) policies
+
+#### `es ilm list`
+
+```bash
+es ilm list [flags]
+```
+
+List all ILM policies.
+
+```bash
+es ilm list -o json
+```
+
+#### `es ilm get`
+
+```bash
+es ilm get <policy> [flags]
+```
+
+Get the definition of an ILM policy.
+
+```bash
+es ilm get my-policy -o json
+```
+
+#### `es ilm create` (mutating)
+
+```bash
+es ilm create <name> -f <path> [flags]
+```
+
+Create an ILM policy from a definition file (`-f` is required).
+
+- `-f, --file <path>` — JSON/YAML policy definition (use `-` for stdin). Required.
+- `--if-not-exists` — succeed silently if the policy already exists.
+
+```bash
+es ilm create my-policy -f policy.json
+es ilm create my-policy -f policy.json --if-not-exists
+```
+
+#### `es ilm delete` (mutating)
+
+```bash
+es ilm delete <name> [flags]
+```
+
+Delete an ILM policy. Prompts for confirmation unless `--confirm` is set.
+
+- `--confirm` — skip the confirmation prompt.
+- `--if-exists` — succeed silently if the policy does not exist.
+
+```bash
+es ilm delete my-policy --confirm
+es ilm delete my-policy --confirm --if-exists
+```
+
+#### `es ilm explain`
+
+```bash
+es ilm explain <index> [flags]
+```
+
+Show the current ILM lifecycle status for an index.
+
+```bash
+es ilm explain my-index -o json
+```
+
+## Output formats
+
+`es` supports three output formats, selected with `--output` / `-o` (or the `defaults.output` config key):
+
+- `table` — default; human-readable columns.
+- `json` — structured JSON; **best for scripting and agents** (parse with `jq`, feed into other tools).
+- `yaml` — YAML; handy for config-style output.
+
+```bash
+es index list            # table (default)
+es index list -o json    # JSON
+es index list -o yaml    # YAML
+```
+
+**JSON example:**
+
+```bash
+es cluster health -o json
+```
+
+```json
+{
+  "cluster_name": "es-prod",
+  "status": "green",
+  "number_of_nodes": 3,
+  "active_shards": 42
+}
+```
+
+> Exceptions: `es node hot-threads` always prints plain text regardless of `-o`. Human-readable status messages from mutating commands (e.g. "Index my-index created.") are informational and can be suppressed with `--quiet`.
+
+### Errors and exit codes
+
+- On any error, `es` exits with a **non-zero status (`1`)**.
+- With `-o json`, errors are written to **stderr** as a structured object: `{"error": "<message>", "status_code": <http status if applicable>}`. The `status_code` field is present (non-zero) when the failure came from an Elasticsearch HTTP response.
+- Without `-o json`, errors are written to stderr as `Error: <message>`.
+- For agents: prefer `-o json` so both success output and error output are machine-parseable, and check the process exit code to detect failure.
+
+## Configuration & profiles
+
+### File location and format
+
+- Path: `~/.config/es-cli/config.yaml` (or `$XDG_CONFIG_HOME/es-cli/config.yaml`).
+- Format: YAML. Written with permissions `0600`. Created/updated by `es login` and `es config set`.
+
+The file has three top-level sections: `current_profile`, `profiles`, and `defaults`. Example:
+
+```yaml
+current_profile: prod
+profiles:
+  prod:
+    url: https://es.prod.example.com:9200
+    auth_method: basic        # basic | api_key | bearer | "" (auto-detect)
+    username: elastic
+    password: changeme
+    ca_cert: /etc/ssl/es-ca.pem
+    insecure: false
+    read_only: false
+  staging:
+    url: https://es.staging.example.com:9200
+    auth_method: api_key
+    api_key_id: abc123
+    api_key: c2VjcmV0
+  readonly-prod:
+    url: https://es.prod.example.com:9200
+    auth_method: bearer
+    token: ey...
+    read_only: true           # this profile blocks all mutating commands
+defaults:
+  output: json                # default -o value: table | json | yaml
+```
+
+Profile fields: `url`, `auth_method`, `username`, `password`, `api_key_id`, `api_key`, `token`, `ca_cert`, `insecure`, `read_only`.
+
+### How profiles work
+
+- The active profile is `current_profile`. Its values are used whenever a setting is not supplied by a flag or env var (see precedence above).
+- `--profile <name>` overrides the active profile for a single command.
+- `auth_method` may be left empty to auto-detect from the credentials present (bearer → api_key → basic).
+- A profile may set `read_only: true` to make that profile a safe, read-only connection by default (mutating commands are blocked). This can still be overridden per-command with `--read-only=false`.
+
+Managing profiles:
+
+```bash
+es login                       # interactively create a profile (tests connection)
+es config list-profiles        # list profiles; * marks current
+es config use-profile staging  # set the active profile
+es config set defaults.output json
+es config view                 # dump the whole config as YAML
+```
+
+## Safety features
+
+These are especially relevant for automation and LLM agents:
+
+- **Read-only mode** — `--read-only`, `ES_READ_ONLY=true`, or profile `read_only: true` blocks every mutating command (create/update/delete/open/close/rollover/reindex/bulk/index-document/`settings --set`/`mappings -f`). A blocked command exits with an error explaining how to disable the guard.
+- **No-input mode** — `--no-input` or `ES_NO_INPUT` disables all interactive prompts. Combine with `--confirm` for destructive commands in CI. `es login` is unavailable in this mode.
+- **Confirmation prompts** — destructive `delete` commands (index, document, alias, template, component-template, ingest pipeline, ILM policy) prompt before acting unless `--confirm` is passed.
+- **Idempotent flags** — `--if-not-exists` on create commands swallows 409 conflicts; `--if-exists` on delete commands swallows 404s. Useful for scripts that should not fail on already-applied state.
+
+## File input format
+
+Commands that accept `-f, --file` read a request body from:
+
+- A JSON file (content starting with `{` or `[` is parsed as JSON).
+- A YAML file (any other content is parsed as YAML).
+- **Stdin** — pass `-f -` and pipe the body in.
+
+JSON vs YAML is auto-detected from the content, not the file extension. NDJSON-based commands (`document bulk`, `search msearch`) expect raw newline-delimited JSON (read verbatim, not parsed as a single document).
+
+```bash
+es index create my-index -f settings.json
+es index create my-index -f settings.yaml
+echo '{"settings":{"number_of_shards":1}}' | es index create my-index -f -
+```
+
+## Examples / recipes
+
+End-to-end examples combining the above.
+
+**1. Connect non-interactively and check health (env-var auth):**
+
+```bash
+export ES_URL=https://elasticsearch.example.com:9200
+export ES_USERNAME=elastic
+export ES_PASSWORD=changeme
+es cluster health -o json
+```
+
+**2. Find non-green indices and pretty-print with jq:**
+
+```bash
+es index list -o json | jq '.[] | select(.health != "green") | {index, health, status}'
+```
+
+**3. Create an index from a file, idempotently:**
+
+```bash
+cat > settings.json <<'JSON'
+{ "settings": { "number_of_shards": 1, "number_of_replicas": 1 } }
+JSON
+es index create logs-2026 -f settings.json --if-not-exists
+```
+
+**4. Index a document from stdin, then read it back:**
+
+```bash
+echo '{"message":"hello","level":"info"}' | es document index logs-2026 -f - --id 1 -o json
+es document get logs-2026 1 -o json
+```
+
+**5. Bulk load NDJSON:**
+
+```bash
+cat > bulk.ndjson <<'NDJSON'
+{ "index": { "_id": "1" } }
+{ "message": "a" }
+{ "index": { "_id": "2" } }
+{ "message": "b" }
+NDJSON
+es document bulk -f bulk.ndjson --index logs-2026 -o json
+```
+
+**6. Query DSL search with sorting and paging:**
+
+```bash
+cat > q.json <<'JSON'
+{ "query": { "match": { "message": "hello" } } }
+JSON
+es search query logs-2026 -f q.json --size 20 --from 0 --sort level:asc -o json \
+  | jq '.hits.hits[]._source'
+```
+
+**7. SQL query inline:**
+
+```bash
+es search sql --query "SELECT message, level FROM \"logs-2026\" LIMIT 5" -o json
+```
+
+**8. Reindex into a new index, then attach an alias:**
+
+```bash
+cat > reindex.json <<'JSON'
+{ "source": { "index": "logs-2026" }, "dest": { "index": "logs-2026-v2" } }
+JSON
+es index reindex -f reindex.json -o json
+es index alias create logs-2026-v2 logs
+```
+
+**9. Agent-safe read-only inspection (no writes possible):**
+
+```bash
+es --read-only --no-input -o json cluster health
+es --read-only --no-input -o json index list --pattern "logs-*"
+# A mutating command is refused:
+es --read-only index delete logs-2026 --confirm     # → error: blocked in read-only mode
+```
+
+**10. Debug an unassigned shard:**
+
+```bash
+es cluster allocation-explain --index logs-2026 --shard 0 --primary -o json
+es shard list --index logs-2026 -o json
+```
+
+**11. Switch clusters via profiles:**
+
+```bash
+es config use-profile staging
+es cluster health
+es cluster health --profile prod    # one-off against prod
+```
