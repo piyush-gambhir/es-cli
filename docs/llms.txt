@@ -1,6 +1,6 @@
 # Elasticsearch CLI
 
-> `es` is a fast, cross-platform command-line interface for managing Elasticsearch clusters — indices, documents, search, aliases, templates, ingest pipelines, ILM policies, nodes, and shards — with table/JSON/YAML output and agent-friendly safety flags.
+> `es` is a fast, cross-platform command-line interface for managing Elasticsearch clusters, indices, documents, search, aliases, templates, ingest pipelines, ILM policies, nodes, and shards, with table/JSON/YAML output and agent-friendly safety flags.
 
 This document is the complete, authoritative manual for the `es` CLI. It is intended to be fetched and read by an LLM or coding agent so it can drive the tool correctly with zero prior knowledge. Everything below reflects the actual command surface of the tool.
 
@@ -34,7 +34,7 @@ Pick whichever method fits your environment. All of them produce the same `es` b
 go install github.com/piyush-gambhir/es-cli@latest
 ```
 
-**Prebuilt release binary** — download the archive for your OS/arch from the GitHub Releases page and place the `es` binary on your `PATH`:
+**Prebuilt release binary**, download the archive for your OS/arch from the GitHub Releases page and place the `es` binary on your `PATH`:
 
 ```
 https://github.com/piyush-gambhir/es-cli/releases
@@ -53,7 +53,7 @@ make install   # go install into your GOBIN/GOPATH bin
 make build     # produces a local ./es binary in the repo
 ```
 
-**Self-update** — once `es` is installed from a release, it can update itself in place (downloads the matching release asset, verifies the SHA-256 checksum, and atomically replaces the running binary):
+**Self-update**, once `es` is installed from a release, it can update itself in place (downloads the matching release asset, verifies the SHA-256 checksum, and atomically replaces the running binary):
 
 ```bash
 es update          # check and, if confirmed, install the latest release
@@ -66,9 +66,9 @@ es update --check  # only report whether an update is available
 
 `es` talks to a single Elasticsearch cluster per invocation, identified by a base URL plus credentials. It supports **three authentication methods**:
 
-1. **Basic auth** — username + password.
-2. **API key** — an API key ID + API key secret (or a single pre-encoded API key).
-3. **Bearer token** — an OAuth/bearer token.
+1. **Basic auth**, username + password.
+2. **API key**, an API key ID + API key secret (or a single pre-encoded API key).
+3. **Bearer token**, an OAuth/bearer token.
 
 If the authentication method is not stated explicitly (no `auth_method` in the profile), it is **auto-detected** from whichever credentials are present, in this order: bearer token → API key → basic auth.
 
@@ -265,7 +265,7 @@ es update [--check]
 
 Check for and install the latest release from GitHub. Downloads the OS/arch-matched archive, verifies its SHA-256 checksum, and atomically replaces the running binary (you may need elevated permissions if `es` is installed in a system path).
 
-- `--check` — only report whether an update is available; do not install.
+- `--check`, only report whether an update is available; do not install.
 
 ```bash
 es update            # prompt and install if a newer version exists
@@ -294,7 +294,7 @@ es completion fish | source
 es completion powershell | Out-String | Invoke-Expression
 ```
 
-### `es config` — manage CLI configuration
+### `es config`, manage CLI configuration
 
 View and modify the `es` config file and profiles.
 
@@ -314,8 +314,8 @@ es config set <key> <value>
 
 Set a configuration value. Supported keys:
 
-- `defaults.output` — default output format; value must be `table`, `json`, or `yaml`.
-- `current_profile` — name of the active profile (the profile must already exist).
+- `defaults.output`, default output format; value must be `table`, `json`, or `yaml`.
+- `current_profile`, name of the active profile (the profile must already exist).
 
 ```bash
 es config set defaults.output json
@@ -348,7 +348,7 @@ es config list-profiles
 #   staging (https://es.staging.example.com:9200, api_key)
 ```
 
-### `es cluster` — manage the Elasticsearch cluster
+### `es cluster`, manage the Elasticsearch cluster
 
 View cluster health, stats, settings, pending tasks, and allocation information.
 
@@ -385,7 +385,7 @@ es cluster settings [flags]
 
 Show cluster settings (persistent and transient). By default only explicitly configured settings are shown.
 
-- `--include-defaults` — also include default setting values.
+- `--include-defaults`, also include default setting values.
 
 ```bash
 es cluster settings
@@ -412,16 +412,16 @@ es cluster allocation-explain [flags]
 
 Explain why a shard is unassigned or cannot be allocated. With no flags, explains the first unassigned shard found.
 
-- `--index <name>` — index name to explain.
-- `--shard <int>` — shard number (default `0`).
-- `--primary` — explain the primary shard (default is the replica).
+- `--index <name>`, index name to explain.
+- `--shard <int>`, shard number (default `0`).
+- `--primary`, explain the primary shard (default is the replica).
 
 ```bash
 es cluster allocation-explain
 es cluster allocation-explain --index my-index --shard 0 --primary -o json
 ```
 
-### `es node` — manage cluster nodes (alias: `nodes`)
+### `es node`, manage cluster nodes (alias: `nodes`)
 
 #### `es node list`
 
@@ -455,7 +455,7 @@ es node stats [node-id] [flags]
 
 Show statistics for one node (if `node-id` is given) or all nodes. Available metrics include: `indices`, `os`, `process`, `jvm`, `thread_pool`, `fs`, `transport`, `http`, `breaker`.
 
-- `--metric <name>` — return only a specific metric (e.g. `jvm`, `os`, `indices`).
+- `--metric <name>`, return only a specific metric (e.g. `jvm`, `os`, `indices`).
 
 ```bash
 es node stats -o json
@@ -478,7 +478,7 @@ es node hot-threads
 es node hot-threads node-1
 ```
 
-### `es shard` — view shard information (alias: `shards`)
+### `es shard`, view shard information (alias: `shards`)
 
 #### `es shard list`
 
@@ -488,14 +488,14 @@ es shard list [flags]        # alias: es shard ls
 
 List shards across the cluster: index, shard number, primary/replica, state, doc count, store size, IP, and node.
 
-- `--index <name>` — filter shards by index name.
+- `--index <name>`, filter shards by index name.
 
 ```bash
 es shard list -o json
 es shard list --index my-index
 ```
 
-### `es index` — manage indices (aliases: `indices`, `idx`)
+### `es index`, manage indices (aliases: `indices`, `idx`)
 
 Create, delete, open, close, and manage indices, plus their aliases, templates, and component templates.
 
@@ -507,9 +507,9 @@ es index list [flags]        # alias: es index ls
 
 List indices (name, health, status, UUID, primary/replica counts, doc count, store size).
 
-- `--pattern <glob>` — filter by index name pattern (supports wildcards).
-- `--health <green|yellow|red>` — filter by health.
-- `--status <open|close>` — filter by status.
+- `--pattern <glob>`, filter by index name pattern (supports wildcards).
+- `--health <green|yellow|red>`, filter by health.
+- `--status <open|close>`, filter by status.
 
 ```bash
 es index list -o json
@@ -526,8 +526,8 @@ es index create <index> [flags]
 
 Create a new index, optionally with settings and mappings from a file.
 
-- `-f, --file <path>` — JSON/YAML body with settings/mappings (use `-` for stdin).
-- `--if-not-exists` — succeed silently if the index already exists (409 conflict is swallowed).
+- `-f, --file <path>`, JSON/YAML body with settings/mappings (use `-` for stdin).
+- `--if-not-exists`, succeed silently if the index already exists (409 conflict is swallowed).
 
 ```bash
 es index create my-index
@@ -555,8 +555,8 @@ es index delete <index> [flags]
 
 Permanently delete an index and all its data. Prompts for confirmation unless `--confirm` is set.
 
-- `--confirm` — skip the confirmation prompt.
-- `--if-exists` — succeed silently if the index does not exist (404 is swallowed).
+- `--confirm`, skip the confirmation prompt.
+- `--if-exists`, succeed silently if the index does not exist (404 is swallowed).
 
 ```bash
 es index delete my-index
@@ -596,7 +596,7 @@ es index settings <index> [flags]
 
 Without `--set`, display current index settings. With `--set`, update settings.
 
-- `--set <key=value>` — set a setting; repeatable for multiple settings.
+- `--set <key=value>`, set a setting; repeatable for multiple settings.
 
 ```bash
 es index settings my-index -o json
@@ -612,7 +612,7 @@ es index mappings <index> [flags]
 
 Without `-f`, display current mappings. With `-f`, update mappings from a file.
 
-- `-f, --file <path>` — JSON/YAML mappings body (use `-` for stdin).
+- `-f, --file <path>`, JSON/YAML mappings body (use `-` for stdin).
 
 ```bash
 es index mappings my-index -o json
@@ -640,7 +640,7 @@ es index rollover <alias> [flags]
 
 Roll over an index alias to a new index, optionally based on conditions.
 
-- `-f, --file <path>` — JSON/YAML rollover conditions (use `-` for stdin).
+- `-f, --file <path>`, JSON/YAML rollover conditions (use `-` for stdin).
 
 ```bash
 es index rollover my-alias
@@ -655,14 +655,14 @@ es index reindex -f <path>
 
 Copy documents from a source index to a destination index. The reindex body (with `source` and `dest`) is **required** via `-f`.
 
-- `-f, --file <path>` — JSON/YAML reindex body (use `-` for stdin). Required.
+- `-f, --file <path>`, JSON/YAML reindex body (use `-` for stdin). Required.
 
 ```bash
 es index reindex -f reindex.json
 cat reindex.json | es index reindex -f -
 ```
 
-#### `es index alias` — manage index aliases (alias: `aliases`)
+#### `es index alias`, manage index aliases (alias: `aliases`)
 
 ##### `es index alias list`
 
@@ -672,7 +672,7 @@ es index alias list [flags]        # alias: es index alias ls
 
 List index aliases.
 
-- `--index <name>` — filter aliases by index name.
+- `--index <name>`, filter aliases by index name.
 
 ```bash
 es index alias list -o json
@@ -699,14 +699,14 @@ es index alias delete <index> <alias> [flags]
 
 Remove an alias from an index. Prompts for confirmation unless `--confirm` is set.
 
-- `--confirm` — skip the confirmation prompt.
+- `--confirm`, skip the confirmation prompt.
 
 ```bash
 es index alias delete my-index my-alias
 es index alias delete my-index my-alias --confirm
 ```
 
-#### `es index template` — manage index templates (aliases: `templates`, `tmpl`)
+#### `es index template`, manage index templates (aliases: `templates`, `tmpl`)
 
 ##### `es index template list`
 
@@ -740,7 +740,7 @@ es index template create <name> -f <path>
 
 Create or update an index template from a file (`-f` is required).
 
-- `-f, --file <path>` — JSON/YAML template body (use `-` for stdin). Required.
+- `-f, --file <path>`, JSON/YAML template body (use `-` for stdin). Required.
 
 ```bash
 es index template create my-template -f template.json
@@ -755,15 +755,15 @@ es index template delete <name> [flags]
 
 Delete an index template. Prompts for confirmation unless `--confirm` is set.
 
-- `--confirm` — skip the confirmation prompt.
-- `--if-exists` — succeed silently if the template does not exist.
+- `--confirm`, skip the confirmation prompt.
+- `--if-exists`, succeed silently if the template does not exist.
 
 ```bash
 es index template delete my-template --confirm
 es index template delete my-template --confirm --if-exists
 ```
 
-#### `es index component-template` — manage component templates (alias: `ctmpl`)
+#### `es index component-template`, manage component templates (alias: `ctmpl`)
 
 ##### `es index component-template list`
 
@@ -797,7 +797,7 @@ es index component-template create <name> -f <path>
 
 Create or update a component template from a file (`-f` is required).
 
-- `-f, --file <path>` — JSON/YAML component template body (use `-` for stdin). Required.
+- `-f, --file <path>`, JSON/YAML component template body (use `-` for stdin). Required.
 
 ```bash
 es index component-template create my-component -f component.json
@@ -812,15 +812,15 @@ es index component-template delete <name> [flags]
 
 Delete a component template. Prompts for confirmation unless `--confirm` is set.
 
-- `--confirm` — skip the confirmation prompt.
-- `--if-exists` — succeed silently if the component template does not exist.
+- `--confirm`, skip the confirmation prompt.
+- `--if-exists`, succeed silently if the component template does not exist.
 
 ```bash
 es index component-template delete my-component --confirm
 es index component-template delete my-component --confirm --if-exists
 ```
 
-### `es search` — search and query (alias: `query`)
+### `es search`, search and query (alias: `query`)
 
 #### `es search query`
 
@@ -830,10 +830,10 @@ es search query <index> [flags]
 
 Run a Query DSL search against an index. The query body comes from `-f`; the `--size`, `--from`, and `--sort` flags are merged into the request body. With no file, runs an empty (match-all) query.
 
-- `-f, --file <path>` — JSON/YAML query body (use `-` for stdin).
-- `--size <int>` — number of hits to return (default `10`; only applied when explicitly set).
-- `--from <int>` — starting document offset (default `0`; only applied when explicitly set).
-- `--sort <expr>` — sort expression `field:order`; comma-separated for multiple sorts (e.g. `price:asc,year:desc`). Order defaults to `asc` if omitted.
+- `-f, --file <path>`, JSON/YAML query body (use `-` for stdin).
+- `--size <int>`, number of hits to return (default `10`; only applied when explicitly set).
+- `--from <int>`, starting document offset (default `0`; only applied when explicitly set).
+- `--sort <expr>`, sort expression `field:order`; comma-separated for multiple sorts (e.g. `price:asc,year:desc`). Order defaults to `asc` if omitted.
 
 ```bash
 es search query my-index -f query.json
@@ -850,8 +850,8 @@ es search sql [flags]
 
 Run an Elasticsearch SQL query. Provide the SQL inline with `--query` or from a file with `-f` (one is required).
 
-- `--query <sql>` — inline SQL query string.
-- `-f, --file <path>` — read the SQL query from a file (use `-` for stdin).
+- `--query <sql>`, inline SQL query string.
+- `-f, --file <path>`, read the SQL query from a file (use `-` for stdin).
 
 ```bash
 es search sql --query "SELECT * FROM my-index LIMIT 10"
@@ -866,7 +866,7 @@ es search count <index> [flags]
 
 Count documents in an index, optionally filtered by a query.
 
-- `-f, --file <path>` — JSON/YAML query body to filter the count (use `-` for stdin).
+- `-f, --file <path>`, JSON/YAML query body to filter the count (use `-` for stdin).
 
 ```bash
 es search count my-index -o json
@@ -881,7 +881,7 @@ es search msearch -f <path>
 
 Execute multiple search requests in one call using NDJSON (alternating header and body lines). The file is **required**.
 
-- `-f, --file <path>` — NDJSON request file (use `-` for stdin). Required.
+- `-f, --file <path>`, NDJSON request file (use `-` for stdin). Required.
 
 ```bash
 es search msearch -f requests.ndjson
@@ -896,14 +896,14 @@ es search field-caps <index> [flags]
 
 Show field capabilities for an index.
 
-- `--fields <list>` — comma-separated list of fields (use `*` for all).
+- `--fields <list>`, comma-separated list of fields (use `*` for all).
 
 ```bash
 es search field-caps my-index --fields "*"
 es search field-caps my-index --fields "timestamp,message,level"
 ```
 
-### `es document` — manage documents (aliases: `doc`, `docs`)
+### `es document`, manage documents (aliases: `doc`, `docs`)
 
 #### `es document get`
 
@@ -926,8 +926,8 @@ es document index <index> -f <path> [flags]
 
 Index (create or update) a document. The body is **required** via `-f`. If `--id` is given, the document is indexed with that ID (PUT); otherwise an ID is auto-generated (POST).
 
-- `-f, --file <path>` — JSON/YAML document body (use `-` for stdin). Required.
-- `--id <id>` — document ID (auto-generated if not set).
+- `-f, --file <path>`, JSON/YAML document body (use `-` for stdin). Required.
+- `--id <id>`, document ID (auto-generated if not set).
 
 ```bash
 es document index my-index -f doc.json
@@ -943,8 +943,8 @@ es document delete <index> <id> [flags]
 
 Delete a single document by ID. Prompts for confirmation unless `--confirm` is set.
 
-- `--confirm` — skip the confirmation prompt.
-- `--if-exists` — succeed silently if the document does not exist (404).
+- `--confirm`, skip the confirmation prompt.
+- `--if-exists`, succeed silently if the document does not exist (404).
 
 ```bash
 es document delete my-index abc123
@@ -960,8 +960,8 @@ es document bulk -f <path> [flags]
 
 Bulk index documents using NDJSON (alternating action and source lines). The file is **required**.
 
-- `-f, --file <path>` — NDJSON file (use `-` for stdin). Required.
-- `--index <name>` — default index for bulk operations.
+- `-f, --file <path>`, NDJSON file (use `-` for stdin). Required.
+- `--index <name>`, default index for bulk operations.
 
 ```bash
 es document bulk -f bulk.ndjson
@@ -977,14 +977,14 @@ es document mget <index> -f <path>
 
 Retrieve multiple documents in one request. The IDs body is **required** via `-f`.
 
-- `-f, --file <path>` — JSON/YAML body of document IDs (use `-` for stdin). Required.
+- `-f, --file <path>`, JSON/YAML body of document IDs (use `-` for stdin). Required.
 
 ```bash
 es document mget my-index -f ids.json
 echo '{"ids":["1","2","3"]}' | es doc mget my-index -f -
 ```
 
-### `es ingest` — manage ingest pipelines (alias: `pipeline`)
+### `es ingest`, manage ingest pipelines (alias: `pipeline`)
 
 #### `es ingest list`
 
@@ -1018,8 +1018,8 @@ es ingest create <name> -f <path> [flags]
 
 Create an ingest pipeline from a definition file (`-f` is required).
 
-- `-f, --file <path>` — JSON/YAML pipeline definition (use `-` for stdin). Required.
-- `--if-not-exists` — succeed silently if the pipeline already exists.
+- `-f, --file <path>`, JSON/YAML pipeline definition (use `-` for stdin). Required.
+- `--if-not-exists`, succeed silently if the pipeline already exists.
 
 ```bash
 es ingest create my-pipeline -f pipeline.json
@@ -1034,8 +1034,8 @@ es ingest delete <name> [flags]
 
 Delete an ingest pipeline. Prompts for confirmation unless `--confirm` is set.
 
-- `--confirm` — skip the confirmation prompt.
-- `--if-exists` — succeed silently if the pipeline does not exist.
+- `--confirm`, skip the confirmation prompt.
+- `--if-exists`, succeed silently if the pipeline does not exist.
 
 ```bash
 es ingest delete my-pipeline --confirm
@@ -1050,14 +1050,14 @@ es ingest simulate <name> -f <path>
 
 Simulate an ingest pipeline against sample documents. The documents body is **required** via `-f`.
 
-- `-f, --file <path>` — JSON/YAML body of sample documents (use `-` for stdin). Required.
+- `-f, --file <path>`, JSON/YAML body of sample documents (use `-` for stdin). Required.
 
 ```bash
 es ingest simulate my-pipeline -f docs.json
 echo '{"docs":[{"_source":{"message":"test"}}]}' | es ingest simulate my-pipeline -f -
 ```
 
-### `es ilm` — manage Index Lifecycle Management (ILM) policies
+### `es ilm`, manage Index Lifecycle Management (ILM) policies
 
 #### `es ilm list`
 
@@ -1091,8 +1091,8 @@ es ilm create <name> -f <path> [flags]
 
 Create an ILM policy from a definition file (`-f` is required).
 
-- `-f, --file <path>` — JSON/YAML policy definition (use `-` for stdin). Required.
-- `--if-not-exists` — succeed silently if the policy already exists.
+- `-f, --file <path>`, JSON/YAML policy definition (use `-` for stdin). Required.
+- `--if-not-exists`, succeed silently if the policy already exists.
 
 ```bash
 es ilm create my-policy -f policy.json
@@ -1107,8 +1107,8 @@ es ilm delete <name> [flags]
 
 Delete an ILM policy. Prompts for confirmation unless `--confirm` is set.
 
-- `--confirm` — skip the confirmation prompt.
-- `--if-exists` — succeed silently if the policy does not exist.
+- `--confirm`, skip the confirmation prompt.
+- `--if-exists`, succeed silently if the policy does not exist.
 
 ```bash
 es ilm delete my-policy --confirm
@@ -1131,9 +1131,9 @@ es ilm explain my-index -o json
 
 `es` supports three output formats, selected with `--output` / `-o` (or the `defaults.output` config key):
 
-- `table` — default; human-readable columns.
-- `json` — structured JSON; **best for scripting and agents** (parse with `jq`, feed into other tools).
-- `yaml` — YAML; handy for config-style output.
+- `table`, default; human-readable columns.
+- `json`, structured JSON; **best for scripting and agents** (parse with `jq`, feed into other tools).
+- `yaml`, YAML; handy for config-style output.
 
 ```bash
 es index list            # table (default)
@@ -1222,10 +1222,10 @@ es config view                 # dump the whole config as YAML
 
 These are especially relevant for automation and LLM agents:
 
-- **Read-only mode** — `--read-only`, `ES_READ_ONLY=true`, or profile `read_only: true` blocks every mutating command (create/update/delete/open/close/rollover/reindex/bulk/index-document/`settings --set`/`mappings -f`). A blocked command exits with an error explaining how to disable the guard.
-- **No-input mode** — `--no-input` or `ES_NO_INPUT` disables all interactive prompts. Combine with `--confirm` for destructive commands in CI. `es login` is unavailable in this mode.
-- **Confirmation prompts** — destructive `delete` commands (index, document, alias, template, component-template, ingest pipeline, ILM policy) prompt before acting unless `--confirm` is passed.
-- **Idempotent flags** — `--if-not-exists` on create commands swallows 409 conflicts; `--if-exists` on delete commands swallows 404s. Useful for scripts that should not fail on already-applied state.
+- **Read-only mode**, `--read-only`, `ES_READ_ONLY=true`, or profile `read_only: true` blocks every mutating command (create/update/delete/open/close/rollover/reindex/bulk/index-document/`settings --set`/`mappings -f`). A blocked command exits with an error explaining how to disable the guard.
+- **No-input mode**, `--no-input` or `ES_NO_INPUT` disables all interactive prompts. Combine with `--confirm` for destructive commands in CI. `es login` is unavailable in this mode.
+- **Confirmation prompts**, destructive `delete` commands (index, document, alias, template, component-template, ingest pipeline, ILM policy) prompt before acting unless `--confirm` is passed.
+- **Idempotent flags**, `--if-not-exists` on create commands swallows 409 conflicts; `--if-exists` on delete commands swallows 404s. Useful for scripts that should not fail on already-applied state.
 
 ## File input format
 
@@ -1233,7 +1233,7 @@ Commands that accept `-f, --file` read a request body from:
 
 - A JSON file (content starting with `{` or `[` is parsed as JSON).
 - A YAML file (any other content is parsed as YAML).
-- **Stdin** — pass `-f -` and pipe the body in.
+- **Stdin**, pass `-f -` and pipe the body in.
 
 JSON vs YAML is auto-detected from the content, not the file extension. NDJSON-based commands (`document bulk`, `search msearch`) expect raw newline-delimited JSON (read verbatim, not parsed as a single document).
 
