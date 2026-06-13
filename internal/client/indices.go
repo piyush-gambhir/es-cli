@@ -31,6 +31,11 @@ func (c *Client) ListIndices(ctx context.Context, pattern, health, status string
 		path += "&health=" + health
 	}
 	if status != "" {
+		// The CLI documents --status values as the _cat status column values
+		// ("open"/"close"), but expand_wildcards expects "closed".
+		if status == "close" {
+			status = "closed"
+		}
 		path += "&expand_wildcards=" + status
 	}
 	resp, err := c.Get(ctx, path)

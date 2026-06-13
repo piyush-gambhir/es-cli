@@ -6,28 +6,34 @@ import (
 
 // CatAlias represents an alias from _cat/aliases.
 type CatAlias struct {
-	Alias        string `json:"alias"`
-	Index        string `json:"index"`
-	Filter       string `json:"filter"`
-	RoutingIndex string `json:"routing.index"`
+	Alias         string `json:"alias"`
+	Index         string `json:"index"`
+	Filter        string `json:"filter"`
+	RoutingIndex  string `json:"routing.index"`
 	RoutingSearch string `json:"routing.search"`
-	IsWriteIndex string `json:"is_write_index"`
+	IsWriteIndex  string `json:"is_write_index"`
 }
 
-// ListAliases returns aliases from _cat/aliases.
+// ListAliases returns aliases from _cat/aliases, optionally filtered by the
+// index they point at. The _cat/aliases path parameter filters by alias name,
+// not index, so the index filter is applied client-side.
 func (c *Client) ListAliases(ctx context.Context, index string) ([]CatAlias, error) {
-	path := "/_cat/aliases"
-	if index != "" {
-		path += "/" + index
-	}
-	path += "?format=json"
-	resp, err := c.Get(ctx, path)
+	resp, err := c.Get(ctx, "/_cat/aliases?format=json")
 	if err != nil {
 		return nil, err
 	}
 	var aliases []CatAlias
 	if err := resp.JSON(&aliases); err != nil {
 		return nil, err
+	}
+	if index != "" {
+		filtered := make([]CatAlias, 0, len(aliases))
+		for _, a := range aliases {
+			if a.Index == index {
+				filtered = append(filtered, a)
+			}
+		}
+		aliases = filtered
 	}
 	return aliases, nil
 }

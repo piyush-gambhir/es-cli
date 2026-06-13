@@ -80,16 +80,18 @@ func (c *Client) GetClusterSettings(ctx context.Context, includeDefaults bool) (
 
 // PendingTask represents a pending cluster task.
 type PendingTask struct {
-	InsertOrder    int    `json:"insert_order"`
-	Priority       string `json:"priority"`
-	Source         string `json:"source"`
-	TimeInQueueMS  int    `json:"time_in_queue_millis"`
-	TimeInQueue    string `json:"time_in_queue"`
+	InsertOrder   int    `json:"insert_order"`
+	Priority      string `json:"priority"`
+	Source        string `json:"source"`
+	TimeInQueueMS int    `json:"time_in_queue_millis"`
+	TimeInQueue   string `json:"time_in_queue"`
 }
 
 // GetPendingTasks returns the list of pending cluster tasks.
+// human=true is required for Elasticsearch to include the human-readable
+// time_in_queue field alongside time_in_queue_millis.
 func (c *Client) GetPendingTasks(ctx context.Context) ([]PendingTask, error) {
-	resp, err := c.Get(ctx, "/_cluster/pending_tasks")
+	resp, err := c.Get(ctx, "/_cluster/pending_tasks?human=true")
 	if err != nil {
 		return nil, err
 	}

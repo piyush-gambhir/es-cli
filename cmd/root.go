@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	cmdconfig "github.com/piyush-gambhir/es-cli/cmd/config"
 	"github.com/piyush-gambhir/es-cli/cmd/cluster"
+	cmdconfig "github.com/piyush-gambhir/es-cli/cmd/config"
 	"github.com/piyush-gambhir/es-cli/cmd/document"
 	"github.com/piyush-gambhir/es-cli/cmd/ilm"
 	"github.com/piyush-gambhir/es-cli/cmd/index"
@@ -118,9 +118,9 @@ func newRootCmd() *cobra.Command {
 	var updateResult chan *update.UpdateInfo
 
 	rootCmd := &cobra.Command{
-		Use:   "es",
-		Short: "Elasticsearch CLI - manage Elasticsearch from the command line",
-		Long:  "A command-line interface for managing Elasticsearch clusters, indices, documents, and more.",
+		Use:           "es",
+		Short:         "Elasticsearch CLI - manage Elasticsearch from the command line",
+		Long:          "A command-line interface for managing Elasticsearch clusters, indices, documents, and more.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {

@@ -10,8 +10,8 @@ import (
 
 // Factory provides shared dependencies to all commands.
 type Factory struct {
-	Config   func() (*config.Config, error)
-	Client   func() (*client.Client, error)
+	Config    func() (*config.Config, error)
+	Client    func() (*client.Client, error)
 	IOStreams IOStreams
 	// Resolved holds the resolved config after PersistentPreRunE.
 	Resolved *config.ResolvedConfig
