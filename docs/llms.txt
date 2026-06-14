@@ -23,6 +23,11 @@ This document is the complete, authoritative manual for the `es` CLI. It is inte
 - Privacy Policy: https://es-cli.pages.dev/privacy-policy
 - Terms of Service: https://es-cli.pages.dev/terms-of-service
 - Contact: https://es-cli.pages.dev/contact
+- Skill (Claude Code agent skill): https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md
+
+## Skill (Claude Code / agents)
+
+A ready-made Claude Code skill ships in the repo: https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md . Point your agent at that file, or install it as a skill (copy it to `~/.claude/skills/es/SKILL.md`, or load it via your agent's skill mechanism) to teach an agent how to drive `es`.
 
 ## Install
 

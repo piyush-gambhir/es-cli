@@ -122,7 +122,8 @@ func newRootCmd() *cobra.Command {
 		Short: "Elasticsearch CLI - manage Elasticsearch from the command line",
 		Long: `A command-line interface for managing Elasticsearch clusters, indices, documents, and more.
 
-Full command reference (for agents/LLMs): https://es-cli.pages.dev/llms.txt`,
+Full command reference (for agents/LLMs): https://es-cli.pages.dev/llms.txt
+Claude Code skill: https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
