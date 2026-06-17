@@ -22,14 +22,43 @@ Designed for both human operators and coding agents (LLMs). All commands support
 
 ## Installation
 
+### Quick install (recommended)
+
+Install the latest release with a single command -- no Go toolchain required:
+
 ```bash
-# Go
+curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/es-cli/main/install.sh | sh
+```
+
+Install a specific version or to a custom directory:
+
+```bash
+# Pin a version
+curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/es-cli/main/install.sh | VERSION=0.1.0 sh
+
+# Install to a custom directory (e.g. ~/.local/bin)
+curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/es-cli/main/install.sh | INSTALL_DIR=~/.local/bin sh
+```
+
+### Direct download
+
+Download a prebuilt archive from the [releases page](https://github.com/piyush-gambhir/es-cli/releases) and extract the `es` binary. Archives are named `es-cli_<os>_<arch>.tar.gz` (Windows uses `.zip`):
+
+```bash
+# Example: macOS (Apple Silicon), v0.1.0
+curl -sSfL https://github.com/piyush-gambhir/es-cli/releases/download/v0.1.0/es-cli_darwin_arm64.tar.gz \
+  | tar -xz && sudo mv es /usr/local/bin/
+```
+
+Available archives: `es-cli_darwin_amd64.tar.gz`, `es-cli_darwin_arm64.tar.gz`, `es-cli_linux_amd64.tar.gz`, `es-cli_linux_arm64.tar.gz`, `es-cli_windows_amd64.zip`.
+
+### Alternative (build from source, requires Go)
+
+```bash
+# Install with Go
 go install github.com/piyush-gambhir/es-cli@latest
 
-# From releases
-# Download the appropriate binary from https://github.com/piyush-gambhir/es-cli/releases
-
-# From source
+# Or build from a clone
 git clone https://github.com/piyush-gambhir/es-cli.git
 cd es-cli && make install
 ```
