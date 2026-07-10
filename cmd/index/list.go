@@ -54,7 +54,7 @@ Examples:
 				return err
 			}
 
-			if len(indices) == 0 {
+			if len(indices) == 0 && f.Resolved.Output == "table" {
 				fmt.Fprintln(f.IOStreams.Out, "No indices found.")
 				return nil
 			}
