@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -63,6 +64,9 @@ func loadAndResolveConfig(cmd *cobra.Command) (*config.ResolvedConfig, *config.C
 	var profile *config.Profile
 	if profileName != "" {
 		p, ok := cfg.Profiles[profileName]
+		if !ok && cmd.Name() != "login" {
+			return nil, nil, fmt.Errorf("profile %q not found", profileName)
+		}
 		if ok {
 			profile = &p
 		}
@@ -76,11 +80,19 @@ func loadAndResolveConfig(cmd *cobra.Command) (*config.ResolvedConfig, *config.C
 
 	// Resolve configuration.
 	resolved := config.Resolve(flagURL, flagUsername, flagPassword, flagAPIKeyID, flagAPIKey, flagToken, flagCACert, flagInsecure, profile, cfg.Defaults)
+	if cmd.Flags().Changed("insecure") {
+		resolved.Insecure = flagInsecure
+	}
 	if output != "" {
 		resolved.Output = output
 	}
 
 	return resolved, cfg, nil
+}
+
+func envFlagEnabled(name string) bool {
+	v := strings.TrimSpace(os.Getenv(name))
+	return strings.EqualFold(v, "true") || v == "1"
 }
 
 // createClient sets up the HTTP client factory on the factory.
@@ -128,14 +140,14 @@ Claude Code skill: https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md`,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// Check env vars for --no-input, --quiet, --verbose.
-			if !flagNoInput && os.Getenv("ES_NO_INPUT") != "" {
-				flagNoInput = true
+			if !cmd.Flags().Changed("no-input") {
+				flagNoInput = envFlagEnabled("ES_NO_INPUT")
 			}
-			if !flagQuiet && os.Getenv("ES_QUIET") != "" {
-				flagQuiet = true
+			if !cmd.Flags().Changed("quiet") {
+				flagQuiet = envFlagEnabled("ES_QUIET")
 			}
-			if !flagVerbose && os.Getenv("ES_VERBOSE") != "" {
-				flagVerbose = true
+			if !cmd.Flags().Changed("verbose") {
+				flagVerbose = envFlagEnabled("ES_VERBOSE")
 			}
 			f.NoInput = flagNoInput
 			f.Quiet = flagQuiet

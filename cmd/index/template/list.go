@@ -38,7 +38,7 @@ Examples:
 				return err
 			}
 
-			if len(templates) == 0 {
+			if len(templates) == 0 && f.Resolved.Output == "table" {
 				fmt.Fprintln(f.IOStreams.Out, "No templates found.")
 				return nil
 			}

@@ -58,7 +58,7 @@ Examples:
 				return err
 			}
 
-			if len(shards) == 0 {
+			if len(shards) == 0 && f.Resolved.Output == "table" {
 				fmt.Fprintln(f.IOStreams.Out, "No shards found.")
 				return nil
 			}

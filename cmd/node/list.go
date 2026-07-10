@@ -38,7 +38,7 @@ Examples:
 				return err
 			}
 
-			if len(nodes) == 0 {
+			if len(nodes) == 0 && f.Resolved.Output == "table" {
 				fmt.Fprintln(f.IOStreams.Out, "No nodes found.")
 				return nil
 			}

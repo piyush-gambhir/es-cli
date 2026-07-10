@@ -43,7 +43,7 @@ Examples:
 				return err
 			}
 
-			if len(aliases) == 0 {
+			if len(aliases) == 0 && f.Resolved.Output == "table" {
 				fmt.Fprintln(f.IOStreams.Out, "No aliases found.")
 				return nil
 			}

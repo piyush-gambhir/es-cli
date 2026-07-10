@@ -52,15 +52,18 @@ Examples:
 			}
 
 			result, err := c.BulkIndex(context.Background(), index, bytes.NewReader(data))
+			if result != nil {
+				if printErr := output.Print(f.IOStreams.Out, f.Resolved.Output, result, nil); printErr != nil {
+					return printErr
+				}
+			}
 			if err != nil {
 				return err
 			}
-
 			if !f.Quiet {
 				fmt.Fprintf(f.IOStreams.ErrOut, "Bulk operation completed\n")
 			}
-
-			return output.Print(f.IOStreams.Out, f.Resolved.Output, result, nil)
+			return nil
 		},
 	}
 

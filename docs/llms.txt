@@ -112,9 +112,9 @@ See **Configuration & profiles** below for the file format.
 | `ES_CA_CERT` | Path to a CA certificate (PEM) for TLS |
 | `ES_INSECURE` | Skip TLS verification when set to `true` or `1` |
 | `ES_READ_ONLY` | Block all write/mutating operations when `true` or `1` |
-| `ES_NO_INPUT` | Disable all interactive prompts when set (non-empty) |
-| `ES_QUIET` | Suppress informational output when set (non-empty) |
-| `ES_VERBOSE` | Enable verbose HTTP logging when set (non-empty) |
+| `ES_NO_INPUT` | Disable all interactive prompts when set to `true` or `1` |
+| `ES_QUIET` | Suppress informational output when set to `true` or `1` |
+| `ES_VERBOSE` | Enable verbose HTTP logging when set to `true` or `1` |
 
 ### Precedence (resolution order)
 

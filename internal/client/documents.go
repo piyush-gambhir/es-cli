@@ -64,6 +64,32 @@ func (c *Client) BulkIndex(ctx context.Context, index string, body io.Reader) (j
 	if err := resp.JSON(&result); err != nil {
 		return nil, err
 	}
+
+	var summary struct {
+		Errors bool                         `json:"errors"`
+		Items  []map[string]json.RawMessage `json:"items"`
+	}
+	if err := json.Unmarshal(result, &summary); err != nil {
+		return result, fmt.Errorf("parsing bulk response: %w", err)
+	}
+	if summary.Errors {
+		failed := 0
+		for _, item := range summary.Items {
+			for _, raw := range item {
+				var status struct {
+					Status int             `json:"status"`
+					Error  json.RawMessage `json:"error"`
+				}
+				if json.Unmarshal(raw, &status) == nil && (status.Status >= 300 || len(status.Error) > 0) {
+					failed++
+				}
+			}
+		}
+		if failed == 0 {
+			failed = 1
+		}
+		return result, fmt.Errorf("bulk operation completed with %d failed item(s)", failed)
+	}
 	return result, nil
 }
 
