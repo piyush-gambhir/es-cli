@@ -6,10 +6,10 @@ toolchain go1.26.5
 
 require (
 	github.com/gofrs/flock v0.13.0
-	github.com/google/renameio/v2 v2.0.0
+	github.com/google/renameio/v2 v2.0.2
 	github.com/spf13/cobra v1.10.2
-	golang.org/x/sys v0.44.0
-	golang.org/x/term v0.41.0
+	golang.org/x/sys v0.47.0
+	golang.org/x/term v0.45.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
