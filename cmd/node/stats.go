@@ -1,8 +1,6 @@
 package node
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -43,7 +41,7 @@ Examples:
 				nodeID = args[0]
 			}
 
-			stats, err := c.GetNodeStats(context.Background(), nodeID, metric)
+			stats, err := c.GetNodeStats(cmd.Context(), nodeID, metric)
 			if err != nil {
 				return err
 			}

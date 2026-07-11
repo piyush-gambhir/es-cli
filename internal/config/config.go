@@ -77,8 +77,11 @@ func (c *Config) Save() error {
 // SaveTo writes the config to the given path, creating directories as needed.
 func (c *Config) SaveTo(path string) error {
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("creating config dir: %w", err)
+	}
+	if err := os.Chmod(dir, 0o700); err != nil {
+		return fmt.Errorf("securing config dir: %w", err)
 	}
 
 	data, err := yaml.Marshal(c)
@@ -86,8 +89,11 @@ func (c *Config) SaveTo(path string) error {
 		return fmt.Errorf("marshaling config: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0o600); err != nil {
+	if err := atomicWriteFile(path, data, 0o600); err != nil {
 		return fmt.Errorf("writing config: %w", err)
+	}
+	if err := os.Chmod(path, 0o600); err != nil {
+		return fmt.Errorf("securing config: %w", err)
 	}
 
 	return nil

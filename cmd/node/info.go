@@ -1,8 +1,6 @@
 package node
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -28,7 +26,7 @@ Examples:
 				return err
 			}
 
-			info, err := c.GetNodeInfo(context.Background(), args[0])
+			info, err := c.GetNodeInfo(cmd.Context(), args[0])
 			if err != nil {
 				return err
 			}

@@ -1,7 +1,6 @@
 package ilm
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -43,7 +42,7 @@ Examples:
 				return err
 			}
 
-			err = c.CreateILMPolicy(context.Background(), args[0], body)
+			err = c.CreateILMPolicy(cmd.Context(), args[0], body)
 			if err != nil {
 				if ifNotExists {
 					// Policy already exists; treat as success.

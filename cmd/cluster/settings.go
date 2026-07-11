@@ -1,8 +1,6 @@
 package cluster
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -36,7 +34,7 @@ Examples:
 				return err
 			}
 
-			settings, err := c.GetClusterSettings(context.Background(), includeDefaults)
+			settings, err := c.GetClusterSettings(cmd.Context(), includeDefaults)
 			if err != nil {
 				return err
 			}

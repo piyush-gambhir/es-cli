@@ -1,7 +1,6 @@
 package search
 
 import (
-	"context"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -81,7 +80,7 @@ Examples:
 				}
 			}
 
-			result, err := c.Search(context.Background(), args[0], body)
+			result, err := c.Search(cmd.Context(), args[0], body)
 			if err != nil {
 				return err
 			}

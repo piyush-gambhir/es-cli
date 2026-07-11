@@ -1,7 +1,6 @@
 package ingest
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -43,7 +42,7 @@ Examples:
 				return err
 			}
 
-			err = c.CreatePipeline(context.Background(), args[0], body)
+			err = c.CreatePipeline(cmd.Context(), args[0], body)
 			if err != nil {
 				if ifNotExists {
 					// Pipeline already exists; treat as success.

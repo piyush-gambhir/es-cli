@@ -1,7 +1,6 @@
 package index
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -53,7 +52,7 @@ Examples:
 				return err
 			}
 
-			err = c.DeleteIndex(context.Background(), name)
+			err = c.DeleteIndex(cmd.Context(), name)
 			if err != nil {
 				if ifExists && client.IsNotFound(err) {
 					if !f.Quiet {

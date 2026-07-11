@@ -1,7 +1,6 @@
 package ilm
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -50,7 +49,7 @@ Examples:
 				return err
 			}
 
-			err = c.DeleteILMPolicy(context.Background(), args[0])
+			err = c.DeleteILMPolicy(cmd.Context(), args[0])
 			if err != nil {
 				if ifExists && client.IsNotFound(err) {
 					return nil

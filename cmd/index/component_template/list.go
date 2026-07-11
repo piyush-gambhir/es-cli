@@ -1,8 +1,6 @@
 package componenttemplate
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -31,7 +29,7 @@ Examples:
 				return err
 			}
 
-			result, err := c.ListComponentTemplates(context.Background())
+			result, err := c.ListComponentTemplates(cmd.Context())
 			if err != nil {
 				return err
 			}

@@ -1,7 +1,6 @@
 package search
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -43,7 +42,7 @@ Examples:
 				body = parsed
 			}
 
-			result, err := c.Count(context.Background(), args[0], body)
+			result, err := c.Count(cmd.Context(), args[0], body)
 			if err != nil {
 				return err
 			}

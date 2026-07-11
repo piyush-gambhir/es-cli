@@ -1,8 +1,6 @@
 package cluster
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -30,7 +28,7 @@ Examples:
 				return err
 			}
 
-			stats, err := c.GetClusterStats(context.Background())
+			stats, err := c.GetClusterStats(cmd.Context())
 			if err != nil {
 				return err
 			}

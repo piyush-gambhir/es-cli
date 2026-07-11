@@ -1,7 +1,6 @@
 package template
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -42,7 +41,7 @@ Examples:
 				return err
 			}
 
-			if err := c.CreateIndexTemplate(context.Background(), name, body); err != nil {
+			if err := c.CreateIndexTemplate(cmd.Context(), name, body); err != nil {
 				return err
 			}
 

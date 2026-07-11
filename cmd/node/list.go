@@ -1,7 +1,6 @@
 package node
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -33,7 +32,7 @@ Examples:
 				return err
 			}
 
-			nodes, err := c.ListNodes(context.Background())
+			nodes, err := c.ListNodes(cmd.Context())
 			if err != nil {
 				return err
 			}

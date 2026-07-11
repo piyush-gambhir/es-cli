@@ -1,7 +1,6 @@
 package document
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -50,7 +49,7 @@ Examples:
 				return err
 			}
 
-			err = c.DeleteDocument(context.Background(), args[0], args[1])
+			err = c.DeleteDocument(cmd.Context(), args[0], args[1])
 			if err != nil {
 				if ifExists && client.IsNotFound(err) {
 					return nil

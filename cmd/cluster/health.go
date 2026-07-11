@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -33,7 +32,7 @@ Examples:
 				return err
 			}
 
-			health, err := c.GetClusterHealth(context.Background())
+			health, err := c.GetClusterHealth(cmd.Context())
 			if err != nil {
 				return err
 			}

@@ -1,7 +1,6 @@
 package node
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -36,7 +35,7 @@ Examples:
 				nodeID = args[0]
 			}
 
-			result, err := c.GetHotThreads(context.Background(), nodeID)
+			result, err := c.GetHotThreads(cmd.Context(), nodeID)
 			if err != nil {
 				return err
 			}

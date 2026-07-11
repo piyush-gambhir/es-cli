@@ -1,8 +1,6 @@
 package search
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -48,7 +46,7 @@ Examples:
 				sqlQuery = string(data)
 			}
 
-			result, err := c.SQLQuery(context.Background(), sqlQuery)
+			result, err := c.SQLQuery(cmd.Context(), sqlQuery)
 			if err != nil {
 				return err
 			}

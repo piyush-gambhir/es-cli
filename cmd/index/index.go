@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/cmd/index/alias"
-	"github.com/piyush-gambhir/es-cli/cmd/index/component_template"
+	componenttemplate "github.com/piyush-gambhir/es-cli/cmd/index/component_template"
 	"github.com/piyush-gambhir/es-cli/cmd/index/template"
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
 )

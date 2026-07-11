@@ -1,7 +1,6 @@
 package alias
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -29,7 +28,7 @@ Examples:
 			index := args[0]
 			alias := args[1]
 
-			if err := c.CreateAlias(context.Background(), index, alias); err != nil {
+			if err := c.CreateAlias(cmd.Context(), index, alias); err != nil {
 				return err
 			}
 
