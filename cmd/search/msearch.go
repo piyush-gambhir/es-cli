@@ -2,7 +2,6 @@ package search
 
 import (
 	"bytes"
-	"context"
 
 	"github.com/spf13/cobra"
 
@@ -42,7 +41,7 @@ Examples:
 				return err
 			}
 
-			result, err := c.MultiSearch(context.Background(), bytes.NewReader(data))
+			result, err := c.MultiSearch(cmd.Context(), bytes.NewReader(data))
 			if err != nil {
 				return err
 			}

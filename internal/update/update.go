@@ -159,14 +159,14 @@ func fetchAndCache(currentVersion, repo, cachePath string) (*UpdateInfo, error) 
 
 func writeCache(cachePath string, entry *cacheEntry) {
 	dir := filepath.Dir(cachePath)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return
 	}
 	data, err := json.MarshalIndent(entry, "", "  ")
 	if err != nil {
 		return
 	}
-	_ = os.WriteFile(cachePath, data, 0o644)
+	_ = os.WriteFile(cachePath, data, 0o600)
 }
 
 // isNewer returns true if latest is a higher semver than current.

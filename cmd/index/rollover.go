@@ -1,8 +1,6 @@
 package index
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -40,7 +38,7 @@ Examples:
 				}
 			}
 
-			result, err := c.Rollover(context.Background(), args[0], body)
+			result, err := c.Rollover(cmd.Context(), args[0], body)
 			if err != nil {
 				return err
 			}

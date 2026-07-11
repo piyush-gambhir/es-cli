@@ -1,7 +1,6 @@
 package alias
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -46,7 +45,7 @@ Examples:
 				return err
 			}
 
-			if err := c.DeleteAlias(context.Background(), index, alias); err != nil {
+			if err := c.DeleteAlias(cmd.Context(), index, alias); err != nil {
 				return err
 			}
 

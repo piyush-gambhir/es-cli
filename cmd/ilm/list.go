@@ -1,8 +1,6 @@
 package ilm
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -28,7 +26,7 @@ Examples:
 				return err
 			}
 
-			result, err := c.ListILMPolicies(context.Background())
+			result, err := c.ListILMPolicies(cmd.Context())
 			if err != nil {
 				return err
 			}

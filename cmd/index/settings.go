@@ -1,7 +1,6 @@
 package index
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -51,7 +50,7 @@ Examples:
 				body := map[string]interface{}{
 					"index": settings,
 				}
-				if err := c.PutIndexSettings(context.Background(), name, body); err != nil {
+				if err := c.PutIndexSettings(cmd.Context(), name, body); err != nil {
 					return err
 				}
 				if !f.Quiet {
@@ -60,7 +59,7 @@ Examples:
 				return nil
 			}
 
-			result, err := c.GetIndexSettings(context.Background(), name)
+			result, err := c.GetIndexSettings(cmd.Context(), name)
 			if err != nil {
 				return err
 			}

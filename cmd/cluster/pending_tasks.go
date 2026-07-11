@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -30,7 +29,7 @@ Examples:
 				return err
 			}
 
-			tasks, err := c.GetPendingTasks(context.Background())
+			tasks, err := c.GetPendingTasks(cmd.Context())
 			if err != nil {
 				return err
 			}

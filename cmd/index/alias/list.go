@@ -1,7 +1,6 @@
 package alias
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -38,7 +37,7 @@ Examples:
 				return err
 			}
 
-			aliases, err := c.ListAliases(context.Background(), index)
+			aliases, err := c.ListAliases(cmd.Context(), index)
 			if err != nil {
 				return err
 			}

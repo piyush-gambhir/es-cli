@@ -50,8 +50,9 @@ func newCmdConfigView(f *cmdutil.Factory) *cobra.Command {
 
 func newCmdConfigSet(f *cmdutil.Factory) *cobra.Command {
 	return &cobra.Command{
-		Use:   "set <key> <value>",
-		Short: "Set a configuration value",
+		Use:         "set <key> <value>",
+		Annotations: map[string]string{"mutates": "true"},
+		Short:       "Set a configuration value",
 		Long: `Set a configuration value. Supported keys:
   defaults.output    - Default output format (table, json, yaml)
   current_profile    - Current profile name`,
@@ -59,28 +60,22 @@ func newCmdConfigSet(f *cmdutil.Factory) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key, value := args[0], args[1]
 
-			cfg, err := config.Load()
-			if err != nil {
-				return err
-			}
-
-			switch key {
-			case "defaults.output":
-				switch value {
-				case "table", "json", "yaml":
-					cfg.Defaults.Output = value
+			if err := config.Update(func(cfg *config.Config) error {
+				switch key {
+				case "defaults.output":
+					switch value {
+					case "table", "json", "yaml":
+						cfg.Defaults.Output = value
+					default:
+						return fmt.Errorf("invalid output format: %s (use table, json, or yaml)", value)
+					}
+				case "current_profile":
+					return cfg.SetCurrentProfile(value)
 				default:
-					return fmt.Errorf("invalid output format: %s (use table, json, or yaml)", value)
+					return fmt.Errorf("unknown config key: %s", key)
 				}
-			case "current_profile":
-				if err := cfg.SetCurrentProfile(value); err != nil {
-					return err
-				}
-			default:
-				return fmt.Errorf("unknown config key: %s", key)
-			}
-
-			if err := cfg.Save(); err != nil {
+				return nil
+			}); err != nil {
 				return err
 			}
 
@@ -94,20 +89,14 @@ func newCmdConfigSet(f *cmdutil.Factory) *cobra.Command {
 
 func newCmdConfigUseProfile(f *cmdutil.Factory) *cobra.Command {
 	return &cobra.Command{
-		Use:   "use-profile <name>",
-		Short: "Switch to a different profile",
-		Args:  cobra.ExactArgs(1),
+		Use:         "use-profile <name>",
+		Annotations: map[string]string{"mutates": "true"},
+		Short:       "Switch to a different profile",
+		Args:        cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := config.Load()
-			if err != nil {
-				return err
-			}
-
-			if err := cfg.SetCurrentProfile(args[0]); err != nil {
-				return err
-			}
-
-			if err := cfg.Save(); err != nil {
+			if err := config.Update(func(cfg *config.Config) error {
+				return cfg.SetCurrentProfile(args[0])
+			}); err != nil {
 				return err
 			}
 

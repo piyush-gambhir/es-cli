@@ -1,8 +1,6 @@
 package index
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -30,7 +28,7 @@ Examples:
 				return err
 			}
 
-			result, err := c.GetIndexStats(context.Background(), args[0])
+			result, err := c.GetIndexStats(cmd.Context(), args[0])
 			if err != nil {
 				return err
 			}

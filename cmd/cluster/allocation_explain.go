@@ -1,8 +1,6 @@
 package cluster
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -49,7 +47,7 @@ Examples:
 				}
 			}
 
-			result, err := c.AllocationExplain(context.Background(), body)
+			result, err := c.AllocationExplain(cmd.Context(), body)
 			if err != nil {
 				return err
 			}

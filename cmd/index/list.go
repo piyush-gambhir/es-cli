@@ -1,7 +1,6 @@
 package index
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -49,7 +48,7 @@ Examples:
 				return err
 			}
 
-			indices, err := c.ListIndices(context.Background(), pattern, health, status)
+			indices, err := c.ListIndices(cmd.Context(), pattern, health, status)
 			if err != nil {
 				return err
 			}

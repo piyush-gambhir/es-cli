@@ -2,7 +2,6 @@ package document
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -51,7 +50,7 @@ Examples:
 				return err
 			}
 
-			result, err := c.BulkIndex(context.Background(), index, bytes.NewReader(data))
+			result, err := c.BulkIndex(cmd.Context(), index, bytes.NewReader(data))
 			if result != nil {
 				if printErr := output.Print(f.IOStreams.Out, f.Resolved.Output, result, nil); printErr != nil {
 					return printErr

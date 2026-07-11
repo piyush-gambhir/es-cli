@@ -1,8 +1,6 @@
 package search
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -36,7 +34,7 @@ Examples:
 				return err
 			}
 
-			result, err := c.FieldCaps(context.Background(), args[0], fields)
+			result, err := c.FieldCaps(cmd.Context(), args[0], fields)
 			if err != nil {
 				return err
 			}

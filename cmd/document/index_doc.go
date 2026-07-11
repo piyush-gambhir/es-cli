@@ -1,7 +1,6 @@
 package document
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -50,7 +49,7 @@ Examples:
 				return err
 			}
 
-			result, err := c.IndexDocument(context.Background(), args[0], id, body)
+			result, err := c.IndexDocument(cmd.Context(), args[0], id, body)
 			if err != nil {
 				return err
 			}

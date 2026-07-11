@@ -1,7 +1,6 @@
 package index
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -49,7 +48,7 @@ Examples:
 				}
 			}
 
-			err = c.CreateIndex(context.Background(), name, body)
+			err = c.CreateIndex(cmd.Context(), name, body)
 			if err != nil {
 				if ifNotExists && client.IsConflict(err) {
 					if !f.Quiet {

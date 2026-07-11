@@ -11,6 +11,9 @@ import (
 // the Annotations["mutates"] = "true" annotation. If you add a new write
 // command, add its full command path here; the test will fail until you do.
 var expectedMutatingPaths = []string{
+	"es update",
+	"es config set",
+	"es config use-profile",
 	"es index create",
 	"es index delete",
 	"es index open",

@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"bufio"
-	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/piyush-gambhir/es-cli/internal/client"
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -59,9 +60,10 @@ Examples:
 				fmt.Fprint(out, "Username: ")
 				username, _ := reader.ReadString('\n')
 				username = strings.TrimSpace(username)
-				fmt.Fprint(out, "Password: ")
-				password, _ := reader.ReadString('\n')
-				password = strings.TrimSpace(password)
+				password, err := readLoginSecret(reader, out, "Password: ")
+				if err != nil {
+					return err
+				}
 				if username == "" || password == "" {
 					return fmt.Errorf("username and password are required for basic auth")
 				}
@@ -71,9 +73,10 @@ Examples:
 				fmt.Fprint(out, "API Key ID: ")
 				apiKeyID, _ := reader.ReadString('\n')
 				apiKeyID = strings.TrimSpace(apiKeyID)
-				fmt.Fprint(out, "API Key: ")
-				apiKey, _ := reader.ReadString('\n')
-				apiKey = strings.TrimSpace(apiKey)
+				apiKey, err := readLoginSecret(reader, out, "API Key: ")
+				if err != nil {
+					return err
+				}
 				if apiKeyID == "" || apiKey == "" {
 					return fmt.Errorf("API key ID and API key are required")
 				}
@@ -81,9 +84,10 @@ Examples:
 				profile.APIKey = apiKey
 				profile.AuthMethod = "api_key"
 			case "bearer":
-				fmt.Fprint(out, "Bearer Token: ")
-				token, _ := reader.ReadString('\n')
-				token = strings.TrimSpace(token)
+				token, err := readLoginSecret(reader, out, "Bearer Token: ")
+				if err != nil {
+					return err
+				}
 				if token == "" {
 					return fmt.Errorf("bearer token is required")
 				}
@@ -125,7 +129,7 @@ Examples:
 				return fmt.Errorf("creating client: %w", err)
 			}
 
-			info, err := c.GetClusterInfo(context.Background())
+			info, err := c.GetClusterInfo(cmd.Context())
 			if err != nil {
 				return fmt.Errorf("connection test failed: %w", err)
 			}
@@ -140,17 +144,11 @@ Examples:
 				profileName = "default"
 			}
 
-			// Save to config.
-			cfg, err := config.Load()
-			if err != nil {
-				return fmt.Errorf("loading config: %w", err)
-			}
-
-			// Overwrite if exists.
-			cfg.Profiles[profileName] = profile
-			cfg.CurrentProfile = profileName
-
-			if err := cfg.Save(); err != nil {
+			if err := config.Update(func(cfg *config.Config) error {
+				cfg.Profiles[profileName] = profile
+				cfg.CurrentProfile = profileName
+				return nil
+			}); err != nil {
 				return fmt.Errorf("saving config: %w", err)
 			}
 
@@ -158,4 +156,15 @@ Examples:
 			return nil
 		},
 	}
+}
+
+func readLoginSecret(reader *bufio.Reader, out io.Writer, label string) (string, error) {
+	fmt.Fprint(out, label)
+	if term.IsTerminal(int(os.Stdin.Fd())) {
+		secret, err := term.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Fprintln(out)
+		return strings.TrimSpace(string(secret)), err
+	}
+	secret, err := reader.ReadString('\n')
+	return strings.TrimSpace(secret), err
 }

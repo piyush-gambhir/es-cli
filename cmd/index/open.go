@@ -1,7 +1,6 @@
 package index
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -28,7 +27,7 @@ Examples:
 
 			name := args[0]
 
-			if err := c.OpenIndex(context.Background(), name); err != nil {
+			if err := c.OpenIndex(cmd.Context(), name); err != nil {
 				return err
 			}
 

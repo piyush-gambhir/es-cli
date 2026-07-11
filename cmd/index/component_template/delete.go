@@ -1,7 +1,6 @@
 package componenttemplate
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -52,7 +51,7 @@ Examples:
 				return err
 			}
 
-			err = c.DeleteComponentTemplate(context.Background(), name)
+			err = c.DeleteComponentTemplate(cmd.Context(), name)
 			if err != nil {
 				if ifExists && client.IsNotFound(err) {
 					if !f.Quiet {

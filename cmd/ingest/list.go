@@ -1,8 +1,6 @@
 package ingest
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -28,7 +26,7 @@ Examples:
 				return err
 			}
 
-			result, err := c.ListPipelines(context.Background())
+			result, err := c.ListPipelines(cmd.Context())
 			if err != nil {
 				return err
 			}

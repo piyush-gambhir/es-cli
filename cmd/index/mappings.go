@@ -1,7 +1,6 @@
 package index
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -43,7 +42,7 @@ Examples:
 				if err := cmdutil.UnmarshalInput(file, &body); err != nil {
 					return err
 				}
-				if err := c.PutIndexMappings(context.Background(), name, body); err != nil {
+				if err := c.PutIndexMappings(cmd.Context(), name, body); err != nil {
 					return err
 				}
 				if !f.Quiet {
@@ -52,7 +51,7 @@ Examples:
 				return nil
 			}
 
-			result, err := c.GetIndexMappings(context.Background(), name)
+			result, err := c.GetIndexMappings(cmd.Context(), name)
 			if err != nil {
 				return err
 			}

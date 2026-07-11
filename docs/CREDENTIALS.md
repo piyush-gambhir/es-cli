@@ -973,7 +973,7 @@ Some setups proxy Elasticsearch through Kibana's server. This is sometimes done 
 | `interactive input required but --no-input is set` | `es login` was run with `--no-input` or `ES_NO_INPUT=true` | Use environment variables instead of `es login`, or remove `--no-input` |
 | `creating client: configuring TLS: reading CA certificate ...: no such file or directory` | The CA cert path in your config or `ES_CA_CERT` points to a file that does not exist | Verify the path; update your profile or environment variable |
 | `creating client: configuring TLS: failed to parse CA certificate` | The file is not a valid PEM-encoded certificate | Ensure the file is PEM format (starts with `-----BEGIN CERTIFICATE-----`) |
-| `command '...' is blocked in read-only mode` | `--read-only` or `ES_READ_ONLY=true` is active | Remove the read-only flag or set `--read-only=false` |
+| `command '...' is blocked in read-only mode` | `--read-only` or `ES_READ_ONLY=true` is active | Remove the profile/environment read-only setting before permitting writes |
 
 ### Debugging Connection Issues
 

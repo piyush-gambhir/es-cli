@@ -1,8 +1,6 @@
 package index
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -42,7 +40,7 @@ Examples:
 				return err
 			}
 
-			result, err := c.Reindex(context.Background(), body)
+			result, err := c.Reindex(cmd.Context(), body)
 			if err != nil {
 				return err
 			}

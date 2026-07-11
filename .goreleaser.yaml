@@ -19,12 +19,16 @@ builds:
       - -s -w -X github.com/piyush-gambhir/es-cli/internal/build.Version={{.Version}} -X github.com/piyush-gambhir/es-cli/internal/build.Commit={{.Commit}} -X github.com/piyush-gambhir/es-cli/internal/build.Date={{.Date}}
     binary: es
 
+sboms:
+  - artifacts: archive
+    disable: false
+
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
 
 checksum:
   name_template: "checksums.txt"

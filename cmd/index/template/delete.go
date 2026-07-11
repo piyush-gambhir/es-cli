@@ -1,7 +1,6 @@
 package template
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -52,7 +51,7 @@ Examples:
 				return err
 			}
 
-			err = c.DeleteIndexTemplate(context.Background(), name)
+			err = c.DeleteIndexTemplate(cmd.Context(), name)
 			if err != nil {
 				if ifExists && client.IsNotFound(err) {
 					if !f.Quiet {

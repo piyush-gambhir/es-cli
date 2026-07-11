@@ -1,8 +1,6 @@
 package document
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/piyush-gambhir/es-cli/internal/cmdutil"
@@ -28,7 +26,7 @@ Examples:
 				return err
 			}
 
-			result, err := c.GetDocument(context.Background(), args[0], args[1])
+			result, err := c.GetDocument(cmd.Context(), args[0], args[1])
 			if err != nil {
 				return err
 			}

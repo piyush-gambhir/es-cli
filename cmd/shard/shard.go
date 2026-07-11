@@ -1,7 +1,6 @@
 package shard
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -53,7 +52,7 @@ Examples:
 				return err
 			}
 
-			shards, err := c.ListShards(context.Background(), index)
+			shards, err := c.ListShards(cmd.Context(), index)
 			if err != nil {
 				return err
 			}

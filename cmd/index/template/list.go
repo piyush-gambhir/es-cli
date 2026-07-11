@@ -1,7 +1,6 @@
 package template
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -33,7 +32,7 @@ Examples:
 				return err
 			}
 
-			templates, err := c.ListIndexTemplates(context.Background())
+			templates, err := c.ListIndexTemplates(cmd.Context())
 			if err != nil {
 				return err
 			}
