@@ -1,0 +1,30 @@
+---
+title: Overview
+description: The ES CLI command surface, grouped by area.
+---
+
+Every command supports `-h`/`--help`. Commands that render API data accept
+`-o json|yaml`; `es node hot-threads` remains plain text.
+
+## Connectivity & configuration
+
+```bash
+es cluster health -o json       # cluster reachability and health
+es config list-profiles         # configured connections
+es config use-profile staging   # switch the active profile
+es version                      # CLI build information
+```
+
+## Groups
+
+<Cards>
+  <Card title="Cluster monitoring" href="/docs/commands/cluster-monitoring" description="Health, stats, settings, allocation, nodes, and shards." />
+  <Card title="Indices & templates" href="/docs/commands/indices-templates" description="Indices, aliases, templates, mappings, rollover, and reindex." />
+  <Card title="Documents & search" href="/docs/commands/documents-search" description="Document operations, Query DSL, SQL, count, and multi-search." />
+  <Card title="Ingest & ILM" href="/docs/commands/ingest-ilm" description="Ingest pipelines, simulation, and lifecycle policies." />
+</Cards>
+
+<Callout type="info">
+  This is a curated tour. Use `es <group> --help` and
+  `es <group> <command> --help` for exhaustive usage and flags.
+</Callout>

@@ -1,0 +1,42 @@
+---
+title: Output formats
+description: Table, JSON, and YAML output — plus the stdout/stderr contract.
+---
+
+Use `-o <format>` (or `--output <format>`) on commands that render API data:
+
+- `-o table` — default, human-readable output
+- `-o json` — JSON for tools such as `jq`
+- `-o yaml` — YAML output
+
+```bash
+es cluster health -o json | jq -r .status
+es index list --pattern "logs-*" -o json | jq -r '.[].index'
+es ilm get logs-policy -o yaml
+```
+
+<Callout type="info">
+  **Agents: use `-o json` for reads.** Structured command data is written to
+  **stdout**. Verbose HTTP logs, background update notices, and status messages
+  from several mutating commands are written to **stderr**.
+</Callout>
+
+## Output caveats
+
+- `es node hot-threads` is always plain text, regardless of `--output`.
+- Mutating commands do not share one response shape. Some return API data, while
+  others print only a human-readable success message to stdout or stderr.
+- `--quiet` suppresses informational messages where supported; it does not replace
+  `-o json` for structured data.
+- Non-zero exit status signals command failure.
+
+## File and stdin input
+
+Most commands with `--file` / `-f` accept JSON or YAML request bodies. Use `-f -`
+to read from stdin. SQL accepts a SQL file; bulk and multi-search use NDJSON.
+
+```bash
+es index create app-events -f settings.yaml
+es document index app-events -f document.json --id event-123
+printf '%s\n' '{"query":{"match_all":{}}}' | es search query app-events -f - -o json
+```

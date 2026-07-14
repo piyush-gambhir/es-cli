@@ -1,0 +1,51 @@
+---
+title: Indices & templates
+description: Manage indices, aliases, templates, mappings, rollover, and reindex operations.
+---
+
+## Inspect indices
+
+```bash
+es index list -o json
+es index list --pattern "logs-*" --health yellow -o json
+es index list --status open -o json
+es index get logs-2026.07 -o json
+es index settings logs-2026.07 -o json
+es index mappings logs-2026.07 -o json
+es index stats logs-2026.07 -o json
+```
+
+## Manage indices
+
+```bash
+es index create logs-2026.07 -f settings.yaml --if-not-exists
+es index settings logs-2026.07 --set number_of_replicas=2 --set refresh_interval=30s
+es index mappings logs-2026.07 -f mappings.json
+es index close logs-2026.07
+es index open logs-2026.07
+es index delete logs-2026.07 --confirm --if-exists
+```
+
+## Aliases, rollover, and reindex
+
+```bash
+es index alias list --index logs-2026.07 -o json
+es index alias create logs-2026.07 logs-current
+es index rollover logs-current -f conditions.json
+es index reindex -f reindex.json
+es index alias delete logs-2026.07 logs-current --confirm
+```
+
+## Index and component templates
+
+```bash
+es index template list -o json
+es index template get logs-template -o json
+es index template create logs-template -f template.json
+es index template delete logs-template --confirm --if-exists
+
+es index component-template list -o json
+es index component-template get shared-settings -o json
+es index component-template create shared-settings -f component.json
+es index component-template delete shared-settings --confirm --if-exists
+```

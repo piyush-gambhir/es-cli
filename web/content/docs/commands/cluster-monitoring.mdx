@@ -1,0 +1,43 @@
+---
+title: Cluster monitoring
+description: Cluster health, stats, settings, allocation, nodes, and shards.
+---
+
+## Cluster
+
+```bash
+es cluster health -o json
+es cluster stats -o json
+es cluster settings -o json
+es cluster settings --include-defaults -o json
+es cluster pending-tasks -o json
+```
+
+Explain the first unassigned shard, or identify a specific primary shard:
+
+```bash
+es cluster allocation-explain -o json
+es cluster allocation-explain --index logs-2026.07 --shard 0 --primary -o json
+```
+
+## Nodes
+
+```bash
+es node list -o json
+es node info node-1 -o json
+es node stats -o json
+es node stats node-1 --metric jvm -o json
+es node hot-threads node-1
+```
+
+<Callout type="info">
+  `es node hot-threads` is always plain text, even when a global `--output` flag
+  is present.
+</Callout>
+
+## Shards
+
+```bash
+es shard list -o json
+es shard list --index logs-2026.07 -o json
+```

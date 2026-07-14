@@ -37,6 +37,6 @@ Use this when the repo is unavailable or to confirm flags after upgrades.
 ## Install (reference)
 
 ```bash
-go install github.com/piyush-gambhir/es-cli@latest
+curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/es-cli/main/install.sh | sh
 # or: clone repo && make install — see README.md
 ```

@@ -1,0 +1,83 @@
+---
+title: Authentication
+description: Basic auth, Elasticsearch API keys, bearer tokens, TLS, and named profiles.
+---
+
+ES CLI supports three credential methods when your cluster requires
+authentication. Configuration priority is **CLI flags > environment variables >
+profile config > defaults**.
+
+## Methods
+
+| Method | CLI flags | Environment variables | Notes |
+|---|---|---|---|
+| Basic auth | `--username`, `--password` | `ES_USERNAME`, `ES_PASSWORD` | Username and password |
+| API key | `--api-key-id`, `--api-key` | `ES_API_KEY_ID`, `ES_API_KEY` | Elasticsearch-native API key ID and secret |
+| Bearer token | `--token` | `ES_TOKEN` | OAuth access token, service token, or another supported bearer token |
+
+All methods also need the cluster URL from `--url`, `ES_URL`, or a profile.
+
+## Interactive login
+
+```bash
+es login
+```
+
+The login flow prompts for the URL, auth method, credentials, CA certificate,
+TLS verification preference, and profile name. It tests the connection before
+saving the profile to `~/.config/es-cli/config.yaml`.
+
+## Environment variables
+
+Environment variables are the simplest non-interactive setup:
+
+```bash
+# Basic auth
+export ES_URL=https://elasticsearch.example.com:9200
+export ES_USERNAME=elastic
+export ES_PASSWORD=changeme
+es cluster health -o json
+```
+
+For an API key, set `ES_API_KEY_ID` and `ES_API_KEY` instead. For bearer auth,
+set `ES_TOKEN`. The CLI detects the credential method from the values provided.
+
+## One-off flags
+
+```bash
+es cluster health \
+  --url https://elasticsearch.example.com:9200 \
+  --api-key-id "$ES_API_KEY_ID" \
+  --api-key "$ES_API_KEY" \
+  -o json
+```
+
+## Named profiles
+
+```bash
+es config list-profiles
+es config use-profile staging
+es cluster health --profile prod -o json
+es config view
+```
+
+<Callout type="warn">
+  `es config view` prints the saved configuration, which can include plaintext
+  credentials. Treat its output as sensitive.
+</Callout>
+
+## TLS
+
+Use a PEM-encoded CA certificate for a private or self-signed CA:
+
+```bash
+es cluster health --ca-cert /path/to/ca.pem
+export ES_CA_CERT=/path/to/ca.pem
+```
+
+`--insecure` (or `ES_INSECURE=true`) skips TLS certificate verification.
+
+<Callout type="warn">
+  Do not use `--insecure` in production. Prefer `--ca-cert` or a certificate
+  trusted by the system trust store.
+</Callout>

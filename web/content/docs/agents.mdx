@@ -1,0 +1,62 @@
+---
+title: Agents
+description: Structured output, safety flags, and non-interactive operation for coding agents.
+---
+
+ES CLI is designed to be driven by coding agents as well as humans.
+
+## The output contract
+
+- Add `-o json` to read commands for machine-readable output; `-o yaml` is also
+  available.
+- Structured API data is written to **stdout**. Verbose HTTP logs and background
+  update notices use **stderr**; several write commands also send status messages
+  there.
+- Do not assume writes always return JSON. Validate them with a follow-up read when
+  your workflow needs a machine-readable result.
+- Non-zero exit status signals failure.
+
+## Automation and safety flags
+
+| Flag | Environment | Effect |
+|---|---|---|
+| `--read-only` | `ES_READ_ONLY=true` | Blocks Elasticsearch write operations marked as mutating |
+| `--no-input` | `ES_NO_INPUT=true` | Disables interactive prompts; commands fail instead of prompting |
+| `--quiet` | `ES_QUIET=true` | Suppresses informational output where supported |
+| `--verbose` | `ES_VERBOSE=true` | Sends verbose HTTP diagnostics to stderr |
+
+```bash
+# Safe, non-interactive inventory for an agent
+ES_READ_ONLY=true ES_NO_INPUT=true \
+  es index list --pattern "logs-*" -o json
+```
+
+Destructive delete commands accept `--confirm` to skip confirmation. Supported
+create commands accept `--if-not-exists`, and supported delete commands accept
+`--if-exists`, for idempotent automation.
+
+<Callout type="warn">
+  `--no-input` does not approve a destructive action. Supply `--confirm` when the
+  selected delete command requires confirmation, or it will fail without a prompt.
+</Callout>
+
+## Configuration via environment
+
+No `es login` step is needed in CI. For example, use an Elasticsearch API key:
+
+```bash
+export ES_URL=https://elasticsearch.example.com:9200
+export ES_API_KEY_ID=key-id
+export ES_API_KEY=key-secret
+export ES_NO_INPUT=true
+es cluster health -o json
+```
+
+Connection variables also include `ES_USERNAME`, `ES_PASSWORD`, `ES_TOKEN`,
+`ES_CA_CERT`, and `ES_INSECURE`.
+
+## Agent skill
+
+A ready-to-use agent guide lives at
+[`SKILL.md`](https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md), with the
+longer workflow reference in `CLAUDE.md`.

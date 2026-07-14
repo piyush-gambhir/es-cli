@@ -1,0 +1,10 @@
+{
+  "title": "Commands",
+  "pages": [
+    "index",
+    "cluster-monitoring",
+    "indices-templates",
+    "documents-search",
+    "ingest-ilm"
+  ]
+}

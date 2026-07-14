@@ -14,7 +14,7 @@ Thank you for your interest in contributing! This guide will help you get starte
 
 ```bash
 git clone https://github.com/piyush-gambhir/es-cli.git
-cd es-cli
+cd es-cli/cli-go
 make build
 ```
 

@@ -1,0 +1,63 @@
+---
+title: Quick start
+description: Connect to Elasticsearch and run your first ES CLI commands.
+---
+
+## 1. Configure a connection
+
+The interactive login tests the cluster and saves a named profile:
+
+```bash
+es login
+```
+
+Or configure a non-interactive session with environment variables:
+
+```bash
+export ES_URL=https://elasticsearch.example.com:9200
+export ES_USERNAME=elastic
+export ES_PASSWORD=changeme
+```
+
+## 2. Inspect the cluster
+
+```bash
+es cluster health -o json
+es cluster stats -o json
+es node list -o json
+es shard list -o json
+```
+
+## 3. Inspect indices
+
+```bash
+es index list --pattern "logs-*" -o json
+es index get logs-2026.07 -o json
+es index stats logs-2026.07 -o json
+```
+
+## 4. Search and manage documents
+
+```bash
+# Match all, with paging and sorting merged into the request
+es search query logs-2026.07 --size 20 --sort timestamp:desc -o json
+
+# Index JSON or YAML from a file, then retrieve the document
+es document index logs-2026.07 -f document.json --id event-123
+es document get logs-2026.07 event-123 -o json
+```
+
+## Discovering commands
+
+Every command has `-h`/`--help`:
+
+```bash
+es --help
+es index --help
+es index create --help
+```
+
+<Cards>
+  <Card title="Output formats" href="/docs/output-formats" description="Table, JSON, YAML, and the stdout/stderr contract." />
+  <Card title="Commands" href="/docs/commands" description="The command surface, grouped by area." />
+</Cards>

@@ -56,11 +56,11 @@ Available archives: `es-cli_darwin_amd64.tar.gz`, `es-cli_darwin_arm64.tar.gz`, 
 
 ```bash
 # Install with Go
-go install github.com/piyush-gambhir/es-cli@latest
+curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/es-cli/main/install.sh | sh
 
 # Or build from a clone
 git clone https://github.com/piyush-gambhir/es-cli.git
-cd es-cli && make install
+cd es-cli/cli-go && make install
 ```
 
 ## Quick Start

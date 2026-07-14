@@ -1,0 +1,40 @@
+---
+title: Introduction
+description: A fast, scriptable command-line interface for Elasticsearch clusters.
+---
+
+**ES CLI** is a fast, scriptable command-line interface for **Elasticsearch**.
+Inspect cluster health, manage indices and documents, run searches, and operate
+ingest pipelines and ILM policies from your terminal.
+
+It is designed for both human operators and coding agents. Commands that return
+API data support `-o json` and `-o yaml` for machine-readable output.
+
+<Callout type="info">
+  The binary is `es`. Connection settings can come from CLI flags, environment
+  variables, or named profiles in `~/.config/es-cli/config.yaml`.
+</Callout>
+
+## Features
+
+- **Cluster operations** — health, stats, settings, pending tasks, allocation
+  explanations, nodes, hot threads, and shards.
+- **Indices** — list, inspect, create, delete, open, close, configure, rollover,
+  and reindex; plus aliases, index templates, and component templates.
+- **Documents and search** — document get/index/delete/bulk/mget, Query DSL, SQL,
+  count, multi-search, and field capabilities.
+- **Data flows** — ingest pipeline management and simulation, plus ILM policy
+  management and per-index lifecycle explanations.
+- **Secure connections** — basic auth, API keys, bearer tokens, custom CAs, TLS
+  controls, and multiple named profiles.
+- **Agent-friendly** — `-o json|yaml`, `--read-only`, `--no-input`, `--quiet`,
+  environment-variable configuration, confirmations, and idempotent flags.
+
+## Next steps
+
+<Cards>
+  <Card title="Installation" href="/docs/installation" description="Install the prebuilt binary or build from source." />
+  <Card title="Authentication" href="/docs/authentication" description="Connect with basic auth, an API key, or a bearer token." />
+  <Card title="Quick start" href="/docs/quickstart" description="Configure a cluster and run your first commands." />
+  <Card title="Agents" href="/docs/agents" description="Structured output, safety flags, and non-interactive use." />
+</Cards>

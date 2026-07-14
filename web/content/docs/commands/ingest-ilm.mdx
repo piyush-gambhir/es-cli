@@ -1,0 +1,32 @@
+---
+title: Ingest & ILM
+description: Manage ingest pipelines and Index Lifecycle Management policies.
+---
+
+## Ingest pipelines
+
+```bash
+es ingest list -o json
+es ingest get normalize-events -o json
+es ingest create normalize-events -f pipeline.json --if-not-exists
+es ingest simulate normalize-events -f documents.json -o json
+es ingest delete normalize-events --confirm --if-exists
+```
+
+Pipeline definitions and simulation documents can also come from stdin with
+`-f -`.
+
+## Index Lifecycle Management
+
+```bash
+es ilm list -o json
+es ilm get logs-policy -o json
+es ilm create logs-policy -f policy.yaml --if-not-exists
+es ilm explain logs-2026.07 -o json
+es ilm delete logs-policy --confirm --if-exists
+```
+
+<Callout type="warn">
+  `--read-only` blocks pipeline and policy create/delete commands. Reads,
+  pipeline simulation, and `es ilm explain` remain available.
+</Callout>

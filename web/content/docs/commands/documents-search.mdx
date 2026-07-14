@@ -1,0 +1,47 @@
+---
+title: Documents & search
+description: Get, index, delete, and bulk documents; run Query DSL, SQL, count, and multi-search requests.
+---
+
+## Documents
+
+```bash
+es document get app-events event-123 -o json
+es document index app-events -f document.json --id event-123
+es document mget app-events -f ids.json -o json
+es document bulk -f bulk.ndjson --index app-events -o json
+es document delete app-events event-123 --confirm --if-exists
+```
+
+Use `-f -` to read a document from stdin:
+
+```bash
+printf '%s\n' '{"message":"started","level":"info"}' \
+  | es document index app-events -f - --id event-124
+```
+
+## Query DSL
+
+`search query` runs a match-all request when `-f` is omitted. When present,
+`--size`, `--from`, and `--sort` are merged into the request body.
+
+```bash
+es search query app-events -o json
+es search query app-events -f query.json --size 20 --from 40 -o json
+es search query app-events -f query.json --sort timestamp:desc -o json
+```
+
+## SQL, count, multi-search, and fields
+
+```bash
+es search sql --query "SELECT * FROM app-events LIMIT 10" -o json
+es search sql -f query.sql -o json
+es search count app-events -f query.json -o json
+es search msearch -f requests.ndjson -o json
+es search field-caps app-events --fields "timestamp,message,level" -o json
+```
+
+<Callout type="info">
+  Bulk and multi-search input is NDJSON. Query and document bodies accept JSON
+  or YAML, while `es search sql -f` reads SQL text.
+</Callout>
