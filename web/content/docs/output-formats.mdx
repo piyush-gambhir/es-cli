@@ -1,13 +1,13 @@
 ---
 title: Output formats
-description: Table, JSON, and YAML output — plus the stdout/stderr contract.
+description: Use table, JSON, and YAML output plus the stdout/stderr contract in the independent, unofficial open-source ES CLI.
 ---
 
 Use `-o <format>` (or `--output <format>`) on commands that render API data:
 
-- `-o table` — default, human-readable output
-- `-o json` — JSON for tools such as `jq`
-- `-o yaml` — YAML output
+- `-o table`: default, human-readable output
+- `-o json`: JSON for tools such as `jq`
+- `-o yaml`: YAML output
 
 ```bash
 es cluster health -o json | jq -r .status

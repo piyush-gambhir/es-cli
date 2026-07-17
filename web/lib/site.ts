@@ -12,6 +12,10 @@ export interface Feature {
   icon: LucideIcon;
   title: string;
   body: string;
+  docsLink?: {
+    label: string;
+    href: string;
+  };
 }
 
 export interface SiteConfig {
@@ -37,6 +41,18 @@ export interface SiteConfig {
   example: string;
   /** Optional: tech / query languages this CLI speaks (logo strip) */
   compatible?: string[];
+  /** Optional: features section heading (default: "Everything, from one binary") */
+  featuresTitle?: string;
+  /** Optional: features section subheading */
+  featuresSubtitle?: string;
+  /** Optional: CTA band body (default mentions installing the binary) */
+  ctaBody?: string;
+  /** Optional: per-site accent expressed as an OKLCH color */
+  accent?: string;
+  /** Optional: human-readable accent name */
+  accentName?: string;
+  /** Optional: sRGB equivalent used by generated images and static assets */
+  accentHex?: string;
 }
 
 export const site: SiteConfig = {
@@ -45,8 +61,11 @@ export const site: SiteConfig = {
   repo: 'piyush-gambhir/es-cli',
   tagline: 'Elasticsearch from your terminal',
   description:
-    'A fast, scriptable CLI for Elasticsearch clusters. Inspect health, manage indices and documents, run searches, and operate pipelines and ILM policies — built for humans and coding agents alike.',
+    'ES CLI is an independent, unofficial open-source CLI for Elasticsearch clusters. Inspect health, manage indices and documents, run searches, and operate pipelines and ILM policies from a fast, scriptable tool built for humans and coding agents alike.',
   badge: 'Open-source · Agent-friendly',
+  accent: 'oklch(0.75 0.12 185)',
+  accentName: 'teal',
+  accentHex: '#36c6b8',
   installCommand:
     'curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/es-cli/main/install.sh | sh',
   features: [
@@ -54,31 +73,55 @@ export const site: SiteConfig = {
       icon: Search,
       title: 'Search & documents',
       body: 'Run Query DSL, SQL, count, multi-search, and field-capability requests. Get, index, delete, bulk, and multi-get documents.',
+      docsLink: {
+        label: 'Query DSL',
+        href: '/docs/commands/documents-search',
+      },
     },
     {
       icon: KeyRound,
       title: 'Secure connections',
       body: 'Basic auth, Elasticsearch API keys, bearer tokens, named profiles, custom CA certificates, and TLS verification controls.',
+      docsLink: {
+        label: 'Basic auth',
+        href: '/docs/authentication',
+      },
     },
     {
       icon: Bot,
       title: 'Agent-friendly',
       body: '-o json|yaml for structured reads, --read-only safety mode, --no-input automation, idempotent flags, and quiet operation.',
+      docsLink: {
+        label: 'structured reads',
+        href: '/docs/agents',
+      },
     },
     {
       icon: GitBranch,
       title: 'Pipelines & lifecycle',
       body: 'Create, inspect, simulate, and delete ingest pipelines, then manage and explain Index Lifecycle Management policies.',
+      docsLink: {
+        label: 'ingest pipelines',
+        href: '/docs/commands/ingest-ilm',
+      },
     },
     {
       icon: Zap,
       title: 'Fast & scriptable',
       body: 'A single cross-platform binary with file and stdin input, multiple profiles, shell completion, and self-update support.',
+      docsLink: {
+        label: 'single cross-platform binary',
+        href: '/docs/installation',
+      },
     },
     {
       icon: ListChecks,
       title: 'Cluster operations',
       body: 'Monitor health, stats, settings, pending tasks, allocation decisions, nodes, hot threads, indices, and shards.',
+      docsLink: {
+        label: 'Monitor health',
+        href: '/docs/commands/cluster-monitoring',
+      },
     },
   ],
   exampleTitle: 'An eight-line tour',
