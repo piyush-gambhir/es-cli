@@ -6,23 +6,23 @@ import { site } from '@/lib/site';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-const fontBuffer = async (name: string) => {
-  const data = await readFile(join(process.cwd(), 'fonts', name));
+const fontBuffer = async (...fontPath: string[]) => {
+  const data = await readFile(join(process.cwd(), 'node_modules', ...fontPath));
   return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
 };
 
 export const revalidate = false;
 
-const displayFont = fontBuffer('haffer-xh-regular-2.ttf');
+const displayFont = fontBuffer('@fontsource', 'inter', 'files', 'inter-latin-400-normal.woff');
 
-const monoFont = fontBuffer('haffer-mono-medium-2.ttf');
+const monoFont = fontBuffer('@fontsource', 'jetbrains-mono', 'files', 'jetbrains-mono-latin-500-normal.woff');
 
 export async function GET(_req: Request, { params }: RouteContext<'/og/docs/[...slug]'>) {
   const { slug } = await params;
   const page = source.getPage(slug.slice(0, -1));
   if (!page) notFound();
 
-  const [hafferXH, hafferMono] = await Promise.all([displayFont, monoFont]);
+  const [inter, jetbrainsMono] = await Promise.all([displayFont, monoFont]);
   const accent = site.accentHex ?? '#36c6b8';
 
   return new ImageResponse(
@@ -36,7 +36,7 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/docs/[...
         padding: '68px 76px',
         color: '#f3f4f1',
         background: '#131412',
-        fontFamily: 'Haffer XH',
+        fontFamily: 'Inter',
       }}
     >
       <div
@@ -44,7 +44,7 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/docs/[...
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          fontFamily: 'Haffer Mono',
+          fontFamily: 'JetBrains Mono',
           fontSize: 24,
         }}
       >
@@ -80,7 +80,7 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/docs/[...
           style={{
             margin: '28px 0 0',
             color: '#b6b8b3',
-            fontFamily: 'Haffer Mono',
+            fontFamily: 'JetBrains Mono',
             fontSize: 25,
             lineHeight: 1.35,
           }}
@@ -95,7 +95,7 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/docs/[...
           alignItems: 'center',
           gap: 14,
           color: '#7f827b',
-          fontFamily: 'Haffer Mono',
+          fontFamily: 'JetBrains Mono',
           fontSize: 20,
         }}
       >
@@ -107,8 +107,8 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/docs/[...
       width: 1200,
       height: 630,
       fonts: [
-        { name: 'Haffer XH', data: hafferXH, weight: 400, style: 'normal' },
-        { name: 'Haffer Mono', data: hafferMono, weight: 500, style: 'normal' },
+        { name: 'Inter', data: inter, weight: 400, style: 'normal' },
+        { name: 'JetBrains Mono', data: jetbrainsMono, weight: 500, style: 'normal' },
       ],
     },
   );
