@@ -272,3 +272,7 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
 ## License
 
 MIT
+
+## Compatibility and maintenance
+
+See [build requirements and upstream API compatibility](docs/COMPATIBILITY.md) for the checked API baseline and dependency update workflow.

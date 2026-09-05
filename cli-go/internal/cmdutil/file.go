@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 // ReadInput reads data from a file path or stdin (if path is "-").

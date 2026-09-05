@@ -36,7 +36,9 @@ Pick whichever method fits your environment. All of them produce the same `es` b
 **Go install** (requires a Go toolchain):
 
 ```bash
-go install github.com/piyush-gambhir/es-cli@latest
+git clone https://github.com/piyush-gambhir/es-cli.git
+cd es-cli/cli-go
+make install
 ```
 
 **Prebuilt release binary**, download the archive for your OS/arch from the GitHub Releases page and place the `es` binary on your `PATH`:
@@ -53,7 +55,7 @@ Release archives are named `es-cli_<os>_<arch>.tar.gz` (for example `es-cli_darw
 git clone https://github.com/piyush-gambhir/es-cli.git
 cd es-cli
 
-make install   # go install into your GOBIN/GOPATH bin
+make install   # install the named binary into GOBIN/GOPATH bin
 # or
 make build     # produces a local ./es binary in the repo
 ```
