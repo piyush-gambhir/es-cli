@@ -61,23 +61,17 @@ func DetectInstallMethod(exePath string, getenv func(string) string, homeDir str
 	if homeDir != "" {
 		goBins = append(goBins, filepath.Join(homeDir, "go", "bin"))
 	}
-	exeDir := canonicalDir(filepath.Dir(exePath))
+	// os.SameFile follows symlinks and matches the filesystem's own case rules.
+	exeDir, err := os.Stat(filepath.Dir(exePath))
+	if err != nil {
+		return InstallSelf
+	}
 	for _, dir := range goBins {
-		if strings.EqualFold(exeDir, canonicalDir(dir)) {
+		if fi, err := os.Stat(dir); err == nil && os.SameFile(exeDir, fi) {
 			return InstallGo
 		}
 	}
 	return InstallSelf
-}
-
-func canonicalDir(dir string) string {
-	if abs, err := filepath.Abs(dir); err == nil {
-		dir = abs
-	}
-	if resolved, err := filepath.EvalSymlinks(dir); err == nil {
-		dir = resolved
-	}
-	return filepath.Clean(dir)
 }
 
 // ExecutablePath is the resolved path of the running binary.

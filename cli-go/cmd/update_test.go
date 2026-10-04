@@ -30,6 +30,9 @@ func stubUpdate(t *testing.T, latest string) *updateStub {
 	s := &updateStub{}
 	root := t.TempDir()
 	s.exe = filepath.Join(root, "bin", "es")
+	if err := os.MkdirAll(filepath.Dir(s.exe), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	xdg := filepath.Join(root, "config")
 	s.configDir = filepath.Join(xdg, "es-cli")
 	t.Setenv("XDG_CONFIG_HOME", xdg)

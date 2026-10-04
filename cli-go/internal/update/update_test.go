@@ -237,7 +237,7 @@ func TestFetchLatestRejectsUnexpectedTag(t *testing.T) {
 func TestDetectInstallMethod(t *testing.T) {
 	root := t.TempDir()
 	dirs := map[string]string{}
-	for _, name := range []string{"gobin", "gopath1/bin", "gopath2/bin", "home/go/bin", "usr/local/bin"} {
+	for _, name := range []string{"gobin", "gopath1/bin", "gopath2/bin", "home/go/bin", "usr/local/bin", "home/Go/bin"} {
 		dirs[name] = filepath.Join(root, filepath.FromSlash(name))
 		if err := os.MkdirAll(dirs[name], 0o755); err != nil {
 			t.Fatal(err)
@@ -259,6 +259,16 @@ func TestDetectInstallMethod(t *testing.T) {
 	} {
 		if got := DetectInstallMethod(filepath.Join(dirs[dir], "es"), getenv, home); got != want {
 			t.Errorf("binary in %s: install method %q, want %q", dir, got, want)
+		}
+	}
+
+	// On a case-sensitive filesystem home/Go/bin is a different directory from
+	// home/go/bin and must not count as a Go bin directory.
+	goBin, _ := os.Stat(dirs["home/go/bin"])
+	upper, _ := os.Stat(dirs["home/Go/bin"])
+	if !os.SameFile(goBin, upper) {
+		if got := DetectInstallMethod(filepath.Join(dirs["home/Go/bin"], "es"), getenv, home); got != InstallSelf {
+			t.Errorf("binary in home/Go/bin: install method %q, want self", got)
 		}
 	}
 }
