@@ -3,7 +3,6 @@ package update
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -24,13 +23,25 @@ func fakeClock(t *testing.T) func(time.Duration) {
 	return func(d time.Duration) { current = current.Add(d) }
 }
 
-// latestServer serves GitHub's releases/latest endpoint with *tag and counts
-// requests. An empty tag answers HTTP 500.
+// useServer points downloadBaseURL (github.com) at srv for the test.
+func useServer(t *testing.T, srv *httptest.Server) {
+	t.Helper()
+	t.Cleanup(srv.Close)
+	orig := downloadBaseURL
+	downloadBaseURL = srv.URL
+	t.Cleanup(func() { downloadBaseURL = orig })
+}
+
+// latestServer answers github.com/<repo>/releases/latest like GitHub: a 302 to
+// the release tag page for *tag. It counts requests and fails the test if the
+// redirect is followed. An empty tag answers HTTP 500.
 func latestServer(t *testing.T, tag *string) *atomic.Int32 {
 	t.Helper()
 	var hits atomic.Int32
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/repos/"+Repo+"/releases/latest" {
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/"+Repo+"/releases/latest" {
+			t.Errorf("unexpected request %s (the redirect must not be followed)", r.URL.Path)
 			http.NotFound(w, r)
 			return
 		}
@@ -39,12 +50,9 @@ func latestServer(t *testing.T, tag *string) *atomic.Int32 {
 			http.Error(w, "boom", http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprintf(w, `{"tag_name":%q,"published_at":"2026-10-01T00:00:00Z"}`, *tag)
+		http.Redirect(w, r, srv.URL+"/"+Repo+"/releases/tag/"+*tag, http.StatusFound)
 	}))
-	t.Cleanup(srv.Close)
-	orig := apiBaseURL
-	apiBaseURL = srv.URL
-	t.Cleanup(func() { apiBaseURL = orig })
+	useServer(t, srv)
 	return &hits
 }
 
@@ -186,12 +194,9 @@ func TestNotifyNeverWaits(t *testing.T) {
 	release := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		<-release
-		fmt.Fprint(w, `{"tag_name":"v0.2.0"}`)
+		http.Redirect(w, r, "/"+Repo+"/releases/tag/v0.2.0", http.StatusFound)
 	}))
-	t.Cleanup(srv.Close)
-	orig := apiBaseURL
-	apiBaseURL = srv.URL
-	t.Cleanup(func() { apiBaseURL = orig })
+	useServer(t, srv)
 
 	c := StartCheck("0.1.9", t.TempDir())
 	var buf bytes.Buffer
@@ -226,11 +231,53 @@ func TestCheckNowBypassesCache(t *testing.T) {
 	}
 }
 
-func TestFetchLatestRejectsUnexpectedTag(t *testing.T) {
-	tag := "v1.0.0/../../evil"
-	latestServer(t, &tag)
-	if _, err := FetchLatest(context.Background(), time.Second); err == nil {
-		t.Fatal("FetchLatest accepted a tag that is not a version")
+// FetchLatest reads the tag from the releases/latest redirect without
+// following it, and treats anything but a same-host v-semver tag as a failure.
+func TestFetchLatestFromRedirect(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		location string // "" sends a 302 with no Location; "{srv}" is the server URL
+		status   int
+		want     string // version, or "" for an error
+	}{
+		{"good tag", "{srv}/" + Repo + "/releases/tag/v0.2.0", http.StatusFound, "0.2.0"},
+		{"relative location", "/" + Repo + "/releases/tag/v1.2.3", http.StatusFound, "1.2.3"},
+		{"missing location", "", http.StatusFound, ""},
+		{"foreign host", "https://evil.example/" + Repo + "/releases/tag/v0.2.0", http.StatusFound, ""},
+		{"other repo", "{srv}/someone/else/releases/tag/v0.2.0", http.StatusFound, ""},
+		{"no releases", "{srv}/" + Repo + "/releases", http.StatusFound, ""},
+		{"non-semver tag", "{srv}/" + Repo + "/releases/tag/nightly", http.StatusFound, ""},
+		{"tag without v", "{srv}/" + Repo + "/releases/tag/0.2.0", http.StatusFound, ""},
+		{"traversal tag", "{srv}/" + Repo + "/releases/tag/v1.0.0%2F..%2F..%2Fevil", http.StatusFound, ""},
+		{"not a redirect", "", http.StatusOK, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var followed atomic.Int32
+			var srv *httptest.Server
+			srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/"+Repo+"/releases/latest" {
+					followed.Add(1)
+					return
+				}
+				if tc.location != "" {
+					w.Header().Set("Location", strings.ReplaceAll(tc.location, "{srv}", srv.URL))
+				}
+				w.WriteHeader(tc.status)
+			}))
+			useServer(t, srv)
+
+			rel, err := FetchLatest(context.Background(), time.Second)
+			if tc.want == "" {
+				if err == nil {
+					t.Fatalf("FetchLatest = %+v, want an error", rel)
+				}
+			} else if err != nil || rel.Version != tc.want {
+				t.Fatalf("FetchLatest = %+v, %v, want %s", rel, err, tc.want)
+			}
+			if n := followed.Load(); n != 0 {
+				t.Fatalf("followed the redirect (%d extra requests)", n)
+			}
+		})
 	}
 }
 
