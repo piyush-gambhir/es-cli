@@ -65,7 +65,6 @@ func StartCheck(current, configDir string) *Check {
 		entry.LastChecked = now().UTC()
 		if err == nil {
 			entry.LatestVersion = rel.Version
-			entry.PublishedAt = rel.PublishedAt
 		}
 		saveCache(configDir, entry)
 	}()

@@ -6,8 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -31,17 +31,15 @@ const (
 	ForegroundTimeout = 15 * time.Second
 )
 
-// Test seams: tests point these at httptest servers and fix the clock.
+// Test seams: tests point downloadBaseURL at an httptest server and fix the clock.
 var (
-	apiBaseURL      = "https://api.github.com"
 	downloadBaseURL = "https://github.com"
 	now             = time.Now
 )
 
 // Release is the latest published release.
 type Release struct {
-	Version     string // without the "v" prefix
-	PublishedAt string
+	Version string // without the "v" prefix
 }
 
 // Info compares the running version with the latest known release.
@@ -56,7 +54,6 @@ type Info struct {
 type cacheEntry struct {
 	LastChecked     time.Time `json:"last_checked,omitzero"`
 	LatestVersion   string    `json:"latest_version,omitempty"`
-	PublishedAt     string    `json:"published_at,omitempty"`
 	NotifiedVersion string    `json:"notified_version,omitempty"`
 	NotifiedAt      time.Time `json:"notified_at,omitzero"`
 }
@@ -74,39 +71,54 @@ func ReleaseNotesURL(version string) string {
 	return fmt.Sprintf("https://github.com/%s/releases/tag/v%s", Repo, strings.TrimPrefix(version, "v"))
 }
 
-// FetchLatest asks GitHub for the latest release.
+// noRedirectClient stops at the first response so FetchLatest can read the
+// releases/latest redirect instead of following it.
+var noRedirectClient = &http.Client{
+	CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+}
+
+// FetchLatest resolves the latest release from the redirect that
+// github.com/<repo>/releases/latest answers with
+// (Location: .../releases/tag/v<version>). Unlike api.github.com, this is not
+// limited to 60 requests an hour per IP, which shared NAT, VPNs, and CI hit.
 func FetchLatest(ctx context.Context, timeout time.Duration) (*Release, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiBaseURL+"/repos/"+Repo+"/releases/latest", nil)
+	base, err := url.Parse(downloadBaseURL)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadBaseURL+"/"+Repo+"/releases/latest", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
-	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("User-Agent", projectName)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := noRedirectClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("checking for updates: %w", err)
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("checking for updates: GitHub returned HTTP %d", resp.StatusCode)
+	resp.Body.Close()
+	switch resp.StatusCode {
+	case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
+	default:
+		return nil, fmt.Errorf("checking for updates: %s/releases/latest returned HTTP %d, not a redirect to the latest release", Repo, resp.StatusCode)
 	}
-
-	var body struct {
-		TagName     string `json:"tag_name"`
-		PublishedAt string `json:"published_at"`
+	loc, err := resp.Location()
+	if err != nil {
+		return nil, fmt.Errorf("checking for updates: the latest-release redirect has no Location")
 	}
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&body); err != nil {
-		return nil, fmt.Errorf("decoding release: %w", err)
+	tagPrefix := "/" + Repo + "/releases/tag/"
+	tag, ok := strings.CutPrefix(loc.Path, tagPrefix)
+	if loc.Scheme != base.Scheme || loc.Host != base.Host || !ok {
+		return nil, fmt.Errorf("checking for updates: unexpected latest-release redirect to %s", loc.Redacted())
 	}
-	// The tag ends up in download URLs, so accept only a plain version.
-	if !IsReleaseVersion(body.TagName) {
-		return nil, fmt.Errorf("latest release has an unexpected tag %q", body.TagName)
+	// The tag ends up in download URLs, so accept only a v-prefixed version.
+	if !strings.HasPrefix(tag, "v") || !IsReleaseVersion(tag) {
+		return nil, fmt.Errorf("checking for updates: latest release has an unexpected tag %q", tag)
 	}
-	return &Release{Version: strings.TrimPrefix(body.TagName, "v"), PublishedAt: body.PublishedAt}, nil
+	return &Release{Version: strings.TrimPrefix(tag, "v")}, nil
 }
 
 // CheckNow queries GitHub (ignoring any cached result), records the answer in
@@ -119,7 +131,6 @@ func CheckNow(ctx context.Context, current, configDir string) (*Info, error) {
 	entry := loadCache(configDir)
 	entry.LastChecked = now().UTC()
 	entry.LatestVersion = rel.Version
-	entry.PublishedAt = rel.PublishedAt
 	saveCache(configDir, entry)
 	return newInfo(current, rel.Version), nil
 }
