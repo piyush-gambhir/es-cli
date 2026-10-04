@@ -16,9 +16,9 @@ Designed for both human operators and coding agents (LLMs). All commands support
 - Three auth methods -- basic auth, API key, bearer token
 - TLS support -- custom CA certificates and insecure mode
 - Safety features -- read-only mode, confirmation prompts, idempotent flags
-- Auto-update -- checks for new versions, `es update` to self-update
+- Auto-update -- checks for new versions, `es update` to self-update (macOS and Linux; on Windows, use `es update --check` and replace `es.exe` from the release page)
 - Agent-friendly -- comprehensive help text, structured output for LLM coding agents (`CLAUDE.md` guide, `SKILL.md` for Cursor-style skills)
-- Cross-platform -- macOS, Linux, Windows (amd64 and arm64)
+- Cross-platform -- macOS and Linux (amd64 and arm64), Windows (amd64)
 
 ## Installation
 
@@ -34,7 +34,7 @@ Install a specific version or to a custom directory:
 
 ```bash
 # Pin a version
-curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/es-cli/main/install.sh | VERSION=0.1.1 sh
+curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/es-cli/main/install.sh | VERSION=0.1.7 sh
 
 # Install to a custom directory (e.g. ~/.local/bin)
 curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/es-cli/main/install.sh | INSTALL_DIR=~/.local/bin sh
@@ -45,8 +45,8 @@ curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/es-cli/main/install.
 Download a prebuilt archive from the [releases page](https://github.com/piyush-gambhir/es-cli/releases) and extract the `es` binary. Archives are named `es-cli_<os>_<arch>.tar.gz` (Windows uses `.zip`):
 
 ```bash
-# Example: macOS (Apple Silicon), v0.1.1
-curl -sSfL https://github.com/piyush-gambhir/es-cli/releases/download/v0.1.1/es-cli_darwin_arm64.tar.gz \
+# Example: macOS (Apple Silicon), v0.1.7
+curl -sSfL https://github.com/piyush-gambhir/es-cli/releases/download/v0.1.7/es-cli_darwin_arm64.tar.gz \
   | tar -xz && sudo mv es /usr/local/bin/
 ```
 
@@ -188,7 +188,7 @@ es cluster health --profile staging
 | `es config` | View/set configuration, manage profiles | |
 | `es login` | Interactive authentication setup | |
 | `es version` | Print CLI version | |
-| `es update` | Self-update to latest version | |
+| `es update` | Self-update to latest version (not on Windows; use `--check`) | |
 | `es completion` | Generate shell completions | |
 
 ## Output Formats

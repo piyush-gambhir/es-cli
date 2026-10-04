@@ -10,7 +10,7 @@ This document is the complete, authoritative manual for the `es` CLI. It is inte
 
 - Binary name: `es`
 - Implementation: a single self-contained Go binary (built on the Cobra command framework).
-- Supported platforms: macOS, Linux, and Windows, on both `amd64` and `arm64`.
+- Supported platforms: macOS and Linux on `amd64` and `arm64`, and Windows on `amd64`.
 - License: MIT.
 
 **Independent / unofficial.** This is an independent, community-built tool. It is **not** an official Elastic product and is **not** affiliated with, endorsed by, or sponsored by Elasticsearch B.V. or Elastic N.V. "Elasticsearch" is a trademark of Elasticsearch B.V., used here only to describe what the tool talks to.
@@ -47,13 +47,13 @@ make install
 https://github.com/piyush-gambhir/es-cli/releases
 ```
 
-Release archives are named `es-cli_<os>_<arch>.tar.gz` (for example `es-cli_darwin_arm64.tar.gz`, `es-cli_linux_amd64.tar.gz`) and are published with a `checksums.txt` file for SHA-256 verification.
+Release archives are named `es-cli_<os>_<arch>.tar.gz` (for example `es-cli_darwin_arm64.tar.gz`, `es-cli_linux_amd64.tar.gz`) and are published with a `checksums.txt` file for SHA-256 verification. Windows ships as `es-cli_windows_amd64.zip`.
 
 **From source** (clone and build/install with the Makefile):
 
 ```bash
 git clone https://github.com/piyush-gambhir/es-cli.git
-cd es-cli
+cd es-cli/cli-go
 
 make install   # install the named binary into GOBIN/GOPATH bin
 # or
@@ -68,6 +68,8 @@ es update --check  # only report whether an update is available
 ```
 
 > Self-update is disabled for development builds (when the version is `dev`). Build from source or install a release to enable it.
+>
+> Self-update is not supported on Windows: `es update --check` still reports new releases, but `es update` exits with an error pointing at the release page, where you download the `.zip` and replace `es.exe` yourself.
 
 ## Authentication
 
@@ -270,7 +272,7 @@ Print the CLI version, commit hash, and build date.
 es update [--check]
 ```
 
-Check for and install the latest release from GitHub. Downloads the OS/arch-matched archive, verifies its SHA-256 checksum, and atomically replaces the running binary (you may need elevated permissions if `es` is installed in a system path).
+Check for and install the latest release from GitHub. Downloads the OS/arch-matched archive, verifies its SHA-256 checksum, and atomically replaces the running binary (you may need elevated permissions if `es` is installed in a system path). On Windows, installing is not supported: the command exits with an error pointing at the release page, and `--check` works as usual.
 
 - `--check`, only report whether an update is available; do not install.
 
