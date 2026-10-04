@@ -99,7 +99,7 @@ func TestUpdateRefusesInstallOnWindows(t *testing.T) {
 	var out bytes.Buffer
 	cmd.SetOut(&out)
 	cmd.SetErr(io.Discard)
-	cmd.SetArgs(nil)
+	cmd.SetArgs([]string{})
 	err := cmd.Execute()
 	if err == nil {
 		t.Fatalf("update on Windows succeeded, want an error; output:\n%s", out.String())
