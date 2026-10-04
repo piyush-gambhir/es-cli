@@ -5,7 +5,14 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 )
+
+// noticeWait bounds how long Notify waits for a check this run started. The
+// check is recorded before GitHub is asked, so an answer that arrives after the
+// process exits is lost until the cache expires; a short wait keeps fast
+// commands from losing it. It applies at most once a day.
+var noticeWait = time.Second
 
 // skippedCommands never trigger the background check: they either report
 // versions themselves or produce output other programs consume.
@@ -49,8 +56,9 @@ type Check struct {
 }
 
 // StartCheck starts an update check. A fresh cached result is used as is;
-// otherwise GitHub is queried in a goroutine and the answer (or the failure) is
-// cached for 24 hours.
+// otherwise the check is recorded first, so GitHub is asked at most once in 24
+// hours even if the process exits before the answer (or a failure) arrives,
+// and then GitHub is queried in a goroutine.
 func StartCheck(current, configDir string) *Check {
 	c := &Check{current: current, configDir: configDir, done: make(chan struct{})}
 	entry := loadCache(configDir)
@@ -58,26 +66,31 @@ func StartCheck(current, configDir string) *Check {
 		close(c.done)
 		return c
 	}
+	entry.LastChecked = now().UTC()
+	saveCache(configDir, entry)
 	go func() {
 		defer close(c.done)
 		rel, err := FetchLatest(context.Background(), BackgroundTimeout)
-		entry := loadCache(configDir)
-		entry.LastChecked = now().UTC()
-		if err == nil {
-			entry.LatestVersion = rel.Version
+		if err != nil {
+			return
 		}
+		entry := loadCache(configDir)
+		entry.LatestVersion = rel.Version
 		saveCache(configDir, entry)
 	}()
 	return c
 }
 
-// Notify prints the update notice to w if the check has already finished, a
-// newer release exists, and the notice for that release was not shown in the
-// last 24 hours. It never waits for the check.
+// Notify prints the update notice to w if a newer release exists and the
+// notice for that release was not shown in the last 24 hours. A check answered
+// from the cache is reported at once; a check this run started gets up to
+// noticeWait to finish, otherwise Notify returns without printing.
 func (c *Check) Notify(w io.Writer, method InstallMethod) {
+	timer := time.NewTimer(noticeWait)
+	defer timer.Stop()
 	select {
 	case <-c.done:
-	default:
+	case <-timer.C:
 		return
 	}
 	entry := loadCache(c.configDir)

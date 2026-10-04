@@ -143,7 +143,7 @@ func TestUpdateAlreadyLatest(t *testing.T) {
 	}
 }
 
-func TestUpdateYesInstallsAndClearsCache(t *testing.T) {
+func TestUpdateYesInstallsAndKeepsCache(t *testing.T) {
 	s := stubUpdate(t, "0.2.0")
 	if err := os.MkdirAll(s.configDir, 0o700); err != nil {
 		t.Fatal(err)
@@ -165,8 +165,10 @@ func TestUpdateYesInstallsAndClearsCache(t *testing.T) {
 			t.Errorf("output missing %q:\n%s", want, out)
 		}
 	}
-	if _, err := os.Stat(cache); !os.IsNotExist(err) {
-		t.Fatalf("update cache not cleared: %v", err)
+	// The cache holds the installed release, so the notifier stays quiet and
+	// es version agrees with es update.
+	if data, err := os.ReadFile(cache); err != nil || !strings.Contains(string(data), `"latest_version":"0.2.0"`) {
+		t.Fatalf("update cache after a successful update = %q, %v", data, err)
 	}
 }
 

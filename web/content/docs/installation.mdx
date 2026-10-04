@@ -76,7 +76,8 @@ Update with: es update
 Release notes: https://github.com/piyush-gambhir/es-cli/releases/tag/v0.1.10
 ```
 
-The check runs in the background, at most once a day, and never delays a
-command. It only happens in an interactive terminal: nothing is checked or
+The check runs in the background, at most once a day. If a command finishes
+before GitHub answers, it waits up to one second for the answer, so that day's
+notice is not lost; every other run never waits. It only happens in an interactive terminal: nothing is checked or
 printed when stderr is not a terminal, when `CI` is set, or with `--quiet`. Turn
 it off with `ES_NO_UPDATE_NOTIFIER=1` or `NO_UPDATE_NOTIFIER=1`.

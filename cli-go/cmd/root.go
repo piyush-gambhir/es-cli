@@ -220,7 +220,7 @@ Claude Code skill: https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md`,
 			if updateCheck == nil {
 				return
 			}
-			// Prints only if the check already finished; never waits.
+			// Waits at most a second, and only for a check this run started.
 			exe, _ := executablePath()
 			updateCheck.Notify(f.IOStreams.ErrOut, installMethodOf(exe))
 		},

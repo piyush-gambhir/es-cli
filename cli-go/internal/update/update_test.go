@@ -188,28 +188,67 @@ func TestFailedCheckIsCached(t *testing.T) {
 	}
 }
 
-// Notify must not wait for a check that is still running.
-func TestNotifyNeverWaits(t *testing.T) {
-	fakeClock(t)
-	release := make(chan struct{})
+// slowServer answers releases/latest with v0.2.0 after delay, or when the
+// test ends, whichever comes first, and counts requests.
+func slowServer(t *testing.T, delay time.Duration) *atomic.Int32 {
+	t.Helper()
+	var hits atomic.Int32
+	stop := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		<-release
+		hits.Add(1)
+		select {
+		case <-time.After(delay):
+		case <-stop:
+		}
 		http.Redirect(w, r, "/"+Repo+"/releases/tag/v0.2.0", http.StatusFound)
 	}))
 	useServer(t, srv)
+	t.Cleanup(func() { close(stop) }) // runs before srv.Close, which waits for handlers
+	return &hits
+}
+
+// A command that finishes before GitHub answers still shows the notice on the
+// same run when the answer arrives within noticeWait.
+func TestNotifyWaitsForCheckStartedThisRun(t *testing.T) {
+	fakeClock(t)
+	slowServer(t, 200*time.Millisecond)
 
 	c := StartCheck("0.1.9", t.TempDir())
 	var buf bytes.Buffer
+	c.Notify(&buf, InstallSelf)
+	if !strings.Contains(buf.String(), "v0.1.9 -> v0.2.0") {
+		t.Fatalf("notice not printed on the run that started the check: %q", buf.String())
+	}
+}
+
+// A check slower than noticeWait delays the command by at most noticeWait,
+// and the next run neither asks GitHub again nor waits.
+func TestNotifyWaitIsBounded(t *testing.T) {
+	advance := fakeClock(t)
+	hits := slowServer(t, 10*time.Second)
+	dir := t.TempDir()
+
+	c := StartCheck("0.1.9", dir)
+	var buf bytes.Buffer
 	start := time.Now()
 	c.Notify(&buf, InstallSelf)
-	if elapsed := time.Since(start); elapsed > 500*time.Millisecond {
-		t.Fatalf("Notify blocked for %s", elapsed)
+	if elapsed := time.Since(start); elapsed > noticeWait+500*time.Millisecond {
+		t.Fatalf("Notify blocked for %s, want at most about %s", elapsed, noticeWait)
 	}
 	if buf.Len() != 0 {
 		t.Fatalf("Notify printed before the check finished: %q", buf.String())
 	}
-	close(release)
-	<-c.done
+
+	advance(time.Hour)
+	c = StartCheck("0.1.9", dir)
+	start = time.Now()
+	c.Notify(&buf, InstallSelf)
+	if elapsed := time.Since(start); elapsed > 100*time.Millisecond {
+		t.Fatalf("Notify waited %s on a cached check", elapsed)
+	}
+	if n := hits.Load(); n != 1 {
+		t.Fatalf("GitHub hit %d times within 24h, want 1", n)
+	}
 }
 
 func TestCheckNowBypassesCache(t *testing.T) {

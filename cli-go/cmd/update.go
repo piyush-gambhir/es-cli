@@ -197,7 +197,7 @@ func runUpdate(cmd *cobra.Command, yes bool) error {
 	if err := installRelease(cmd.Context(), info.LatestVersion, exe, progress); err != nil {
 		return fmt.Errorf("update failed, es v%s was left in place: %w", info.CurrentVersion, err)
 	}
-	update.ClearCache(config.ConfigDir())
+	// checkLatest already stored the installed release in the notifier's cache.
 	fmt.Fprintf(w, "Updated es v%s -> v%s\n", info.CurrentVersion, info.LatestVersion)
 	fmt.Fprintf(w, "Release notes: %s\n", notesURL)
 	return nil
