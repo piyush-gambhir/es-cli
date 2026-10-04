@@ -79,7 +79,7 @@ Update with: es update
 Release notes: https://github.com/piyush-gambhir/es-cli/releases/tag/v0.1.10
 ```
 
-The check runs in the background (one GitHub request a day, cached in `~/.config/es-cli/update-check.json`) and never delays a command. It is skipped entirely, with no network request, when stderr is not a terminal, `CI` is set, `ES_NO_UPDATE_NOTIFIER` or `NO_UPDATE_NOTIFIER` is set to any value, under `--quiet`/`ES_QUIET`, for development builds, and for `update`, `version`, `completion`, and `help`. Agents and scripts never see it.
+The check runs in the background (one GitHub request a day, cached in `~/.config/es-cli/update-check.json`, which `es update --check` and `es update` also write). On the run that asks GitHub, a command that finishes first waits up to one second for the answer; every other run never waits. It is skipped entirely, with no network request, when stderr is not a terminal, `CI` is set, `ES_NO_UPDATE_NOTIFIER` or `NO_UPDATE_NOTIFIER` is set to any value, under `--quiet`/`ES_QUIET`, for development builds, and for `update`, `version`, `completion`, and `help`. Agents and scripts never see it.
 
 ## Authentication
 

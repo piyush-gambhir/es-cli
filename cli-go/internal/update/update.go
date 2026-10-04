@@ -122,7 +122,8 @@ func FetchLatest(ctx context.Context, timeout time.Duration) (*Release, error) {
 }
 
 // CheckNow queries GitHub (ignoring any cached result), records the answer in
-// the cache, and compares it with current.
+// the cache the notifier reads, so `es update --check` and `es update` agree
+// with the notice, and compares it with current.
 func CheckNow(ctx context.Context, current, configDir string) (*Info, error) {
 	rel, err := FetchLatest(ctx, ForegroundTimeout)
 	if err != nil {
@@ -143,11 +144,6 @@ func Cached(current, configDir string) (info *Info, ok bool) {
 		return nil, false
 	}
 	return newInfo(current, entry.LatestVersion), true
-}
-
-// ClearCache removes the cached check, for example after an update.
-func ClearCache(configDir string) {
-	_ = os.Remove(filepath.Join(configDir, cacheFileName))
 }
 
 func newInfo(current, latest string) *Info {
