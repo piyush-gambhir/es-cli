@@ -44,3 +44,39 @@ The binary is `es`.
 ```bash
 es version
 ```
+
+## Updating
+
+```bash
+es update                  # show the new version, ask, then install it
+es update --yes            # install without asking
+es update --check          # only report current and latest versions
+es update --check -o json  # the same, for scripts
+```
+
+`es update` works on macOS, Linux, and Windows. It downloads the release archive
+for your OS/arch, verifies its SHA-256 checksum against the release's
+`checksums.txt`, and replaces the binary in place. On Windows, the running
+`es.exe` is renamed to `es.exe.old`, which the next run deletes. If anything
+fails, the current binary keeps working.
+
+If the binary's directory is not writable, `es update` stops before downloading:
+re-run it with `sudo`, or reinstall with the install script into a writable
+directory (`INSTALL_DIR=~/.local/bin`). A binary built with `make install` into a
+Go bin directory is not replaced; run `git pull && make install` in your checkout.
+
+### Update notice
+
+When a newer release exists, other commands print a short notice on stderr after
+their own output, at most once a day per release:
+
+```text
+A new version of es is available: v0.1.9 -> v0.1.10
+Update with: es update
+Release notes: https://github.com/piyush-gambhir/es-cli/releases/tag/v0.1.10
+```
+
+The check runs in the background, at most once a day, and never delays a
+command. It only happens in an interactive terminal: nothing is checked or
+printed when stderr is not a terminal, when `CI` is set, or with `--quiet`. Turn
+it off with `ES_NO_UPDATE_NOTIFIER=1` or `NO_UPDATE_NOTIFIER=1`.

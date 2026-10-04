@@ -60,16 +60,26 @@ make install   # install the named binary into GOBIN/GOPATH bin
 make build     # produces a local ./es binary in the repo
 ```
 
-**Self-update**, once `es` is installed from a release, it can update itself in place (downloads the matching release asset, verifies the SHA-256 checksum, and atomically replaces the running binary):
+**Updating**, a release install updates itself in place on macOS, Linux, and Windows. `es update` downloads the archive for your OS/arch (`.tar.gz`, or `.zip` on Windows), verifies its SHA-256 against the release's `checksums.txt`, extracts only the `es` binary, and replaces the running binary (on Windows the running `es.exe` is renamed to `es.exe.old`, which the next run deletes). Any failure leaves the current binary in place:
 
 ```bash
-es update          # check and, if confirmed, install the latest release
-es update --check  # only report whether an update is available
+es update                  # show vX -> vY, ask "Update now? [Y/n]", install
+es update --yes            # install without asking (needed under --no-input or without a terminal)
+es update --check          # report current and latest versions; never installs
+es update --check -o json  # current_version, latest_version, update_available, release_url, install_method
 ```
 
-> Self-update is disabled for development builds (when the version is `dev`). Build from source or install a release to enable it.
->
-> Self-update is not supported on Windows: `es update --check` still reports new releases, but `es update` exits with an error pointing at the release page, where you download the `.zip` and replace `es.exe` yourself.
+> If the binary's directory is not writable, `es update` fails before downloading: re-run with `sudo`, or reinstall with the install script into a writable directory (`INSTALL_DIR=~/.local/bin`). A binary built from source into a Go bin directory (`$GOBIN`, `$GOPATH/bin`, `~/go/bin`) is not replaced; update it with `git pull && make install` in your `es-cli/cli-go` checkout. Self-update is disabled for development builds (version `dev`).
+
+**Update notice**, when a newer release exists, other commands print this on stderr after their own output, at most once a day per release:
+
+```
+A new version of es is available: v0.1.9 -> v0.1.10
+Update with: es update
+Release notes: https://github.com/piyush-gambhir/es-cli/releases/tag/v0.1.10
+```
+
+The check runs in the background (one GitHub request a day, cached in `~/.config/es-cli/update-check.json`) and never delays a command. It is skipped entirely, with no network request, when stderr is not a terminal, `CI` is set, `ES_NO_UPDATE_NOTIFIER` or `NO_UPDATE_NOTIFIER` is set to any value, under `--quiet`/`ES_QUIET`, for development builds, and for `update`, `version`, `completion`, and `help`. Agents and scripts never see it.
 
 ## Authentication
 
@@ -119,6 +129,7 @@ See **Configuration & profiles** below for the file format.
 | `ES_NO_INPUT` | Disable all interactive prompts when set to `true` or `1` |
 | `ES_QUIET` | Suppress informational output when set to `true` or `1` |
 | `ES_VERBOSE` | Enable verbose HTTP logging when set to `true` or `1` |
+| `ES_NO_UPDATE_NOTIFIER` | Turn off the new-release notice when set to any value (`NO_UPDATE_NOTIFIER` and `CI` work too) |
 
 ### Precedence (resolution order)
 
@@ -264,21 +275,23 @@ Interactively configure, test, and save a connection profile. Prompts for URL, a
 es version
 ```
 
-Print the CLI version, commit hash, and build date.
+Print the CLI version, commit hash, and build date. When an earlier update check cached the latest release, also print `latest:` and `update_available:` lines. Never contacts GitHub.
 
 #### `es update`
 
 ```bash
-es update [--check]
+es update [--check] [--yes]
 ```
 
-Check for and install the latest release from GitHub. Downloads the OS/arch-matched archive, verifies its SHA-256 checksum, and atomically replaces the running binary (you may need elevated permissions if `es` is installed in a system path). On Windows, installing is not supported: the command exits with an error pointing at the release page, and `--check` works as usual.
+Check for and install the latest release from GitHub on macOS, Linux, or Windows. Shows `vX -> vY` and asks `Update now? [Y/n]` when stdin is a terminal. Downloads the OS/arch-matched archive, verifies its SHA-256 checksum, and replaces the running binary (on Windows, `es.exe` is renamed to `es.exe.old` first). If the binary's directory is not writable, it fails before downloading and suggests `sudo` or reinstalling into a writable directory. A source build in a Go bin directory is not replaced; the command prints `git pull && make install` instead. Prints `Updated es vX -> vY` and the release notes URL on success. `--read-only` blocks installing.
 
-- `--check`, only report whether an update is available; do not install.
+- `--check`, only report current and latest versions, whether an update is available, and the release URL; do not install. Always queries GitHub. Supports `-o json` (`current_version`, `latest_version`, `update_available`, `release_url`, `install_method` = `self` or `go`). Exits 0 either way.
+- `--yes`/`-y`, install without the prompt. Required under `--no-input` or when stdin is not a terminal.
 
 ```bash
-es update            # prompt and install if a newer version exists
-es update --check    # just check
+es update                    # prompt and install if a newer version exists
+es update --yes              # install without a prompt
+es update --check -o json    # machine-readable check
 ```
 
 #### `es completion`

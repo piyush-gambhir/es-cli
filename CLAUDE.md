@@ -9,6 +9,7 @@
 - **Env vars:** `ES_URL`, `ES_USERNAME`, `ES_PASSWORD`, `ES_API_KEY_ID`, `ES_API_KEY`, `ES_TOKEN`, `ES_CA_CERT`, `ES_INSECURE`, `ES_READ_ONLY`
 - **Auth methods:** Basic auth (username/password), API key (id + secret), Bearer token
 - **Config priority:** CLI flags > environment variables > profile config > defaults
+- **Update notice:** at most once a day per release, on stderr, only in an interactive terminal. Never shown (and GitHub is not contacted) when stderr is not a terminal, `CI` is set, or under `--quiet`. Turn off with `ES_NO_UPDATE_NOTIFIER=1` or `NO_UPDATE_NOTIFIER=1`.
 
 ## Setup
 
@@ -349,6 +350,7 @@ es config use-profile staging
 - Use `--confirm` on destructive commands (delete) to skip interactive prompts.
 - Use `--no-input` to disable all interactive prompts in CI/automation.
 - Use `--read-only` as a safety guard to block all mutating operations.
+- `es update --check -o json` reports `current_version`, `latest_version`, `update_available`, `release_url`, and `install_method` (`self` or `go`). Installing needs `--yes` under `--no-input` or without a terminal, and is blocked by `--read-only`.
 - For bulk operations: list with `-o json`, parse with jq, then loop over results.
 - Many create/update commands require a `-f` flag pointing to a JSON or YAML file. Prepare the file first, then pass it.
 - Use `-f -` to pipe content from stdin into any command that accepts a file.
@@ -367,8 +369,8 @@ es config use-profile staging
 | Command | Description |
 |---------|-------------|
 | `es login` | Interactively log in and save a connection profile |
-| `es version` | Print CLI version, commit, and build date |
-| `es update` | Check for and install CLI updates (--check for check only; install is not supported on Windows) |
+| `es version` | Print CLI version, commit, and build date (plus the cached latest release, if known) |
+| `es update` | Install the latest release on macOS, Linux, or Windows (`--yes` skips the prompt; `--check [-o json]` only reports) |
 | `es completion` | Generate shell completion scripts |
 
 ### `es config` -- Manage CLI configuration

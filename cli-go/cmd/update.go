@@ -1,367 +1,216 @@
 package cmd
 
 import (
-	"archive/tar"
 	"bufio"
-	"compress/gzip"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/build"
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/config"
+	"github.com/piyush-gambhir/es-cli/cli-go/internal/output"
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/update"
 )
 
-const updateRepo = "piyush-gambhir/es-cli"
-
-// Test seams: tests override these to exercise other platforms and avoid the network.
+// Test seams: tests replace these to avoid the network, the real executable,
+// and the real terminal.
 var (
-	goos           = runtime.GOOS
-	checkForUpdate = update.CheckForUpdateFresh
+	checkLatest     = update.CheckNow
+	executablePath  = update.ExecutablePath
+	stdinIsTerminal = func() bool { return term.IsTerminal(int(os.Stdin.Fd())) }
+	installRelease  = func(ctx context.Context, version, exePath string, progress io.Writer) error {
+		in := &update.Installer{GOOS: runtime.GOOS, GOARCH: runtime.GOARCH, ExePath: exePath, Progress: progress}
+		return in.Install(ctx, version)
+	}
 )
 
+// updateCheckResult is the `es update --check -o json` document.
+type updateCheckResult struct {
+	CurrentVersion  string `json:"current_version"`
+	LatestVersion   string `json:"latest_version"`
+	UpdateAvailable bool   `json:"update_available"`
+	ReleaseURL      string `json:"release_url"`
+	InstallMethod   string `json:"install_method"`
+}
+
 func newUpdateCmd() *cobra.Command {
-	var checkOnly bool
+	var checkOnly, yes bool
 
 	cmd := &cobra.Command{
 		Use:         "update",
 		Annotations: map[string]string{"mutates": "true"},
-		Short:       "Update es to the latest version",
-		Long:        "Check for and install the latest version of the es CLI from GitHub Releases.\n\nOn Windows, self-update is not supported: use --check, then download the release .zip and replace es.exe.",
-		Args:        cobra.NoArgs,
+		Short:       "Update es to the latest release",
+		Long: `Check for and install the latest es release from GitHub Releases.
+
+es update downloads the release archive for this OS and architecture, verifies
+its SHA-256 checksum against the release's checksums.txt, and replaces the
+running binary. It works on macOS, Linux, and Windows. If the binary's
+directory is not writable, it fails and leaves the current binary in place:
+re-run with sudo, or reinstall with the install script into a writable directory.
+A binary built from source into a Go bin directory is not replaced; es update
+prints the command to rebuild it instead.
+
+When stdin is a terminal, es update asks before installing. --yes skips the
+prompt; under --no-input, or without a terminal, --yes is required.
+--read-only blocks installing; --check is always allowed.
+
+Other commands print a short notice on stderr, at most once a day per release,
+when a newer release exists. The notice is only shown in an interactive
+terminal and never in CI. Turn it off with ES_NO_UPDATE_NOTIFIER=1 or
+NO_UPDATE_NOTIFIER=1.
+
+Examples:
+  es update                 # ask, then install the latest release
+  es update --yes           # install without asking
+  es update --check         # report current and latest versions
+  es update --check -o json # same, as JSON`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			configDir := config.ConfigDir()
-			currentVersion := build.Version
-
-			if currentVersion == "dev" {
-				fmt.Fprintln(cmd.OutOrStdout(), "Update checking is not available for development builds.")
-				fmt.Fprintln(cmd.OutOrStdout(), "Build from source or install a release to enable updates.")
-				return nil
-			}
-
-			fmt.Fprintln(cmd.OutOrStdout(), "Checking for updates...")
-			info, err := checkForUpdate(currentVersion, updateRepo, configDir)
-			if err != nil {
-				return fmt.Errorf("checking for updates: %w", err)
-			}
-
 			if checkOnly {
-				if info.Available {
-					update.PrintUpdateNotice(cmd.OutOrStdout(), info)
-				} else {
-					fmt.Fprintf(cmd.OutOrStdout(), "Already up to date (%s)\n", formatVer(currentVersion))
-				}
-				return nil
+				return runUpdateCheck(cmd)
 			}
-
-			if !info.Available {
-				fmt.Fprintf(cmd.OutOrStdout(), "Already up to date (%s)\n", formatVer(currentVersion))
-				return nil
-			}
-
-			fmt.Fprintf(cmd.OutOrStdout(), "\nUpdate available: %s → %s\n",
-				formatVer(info.CurrentVersion), formatVer(info.LatestVersion))
-			if info.PublishedAt != "" {
-				if t, err := time.Parse(time.RFC3339, info.PublishedAt); err == nil {
-					fmt.Fprintf(cmd.OutOrStdout(), "Published: %s\n", t.Format("January 2, 2006"))
-				}
-			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Release:   %s\n\n", info.ReleaseURL)
-			// Windows releases ship as .zip archives and a running .exe cannot be
-			// renamed over, so point the user at the release page instead.
-			if goos == "windows" {
-				return fmt.Errorf("self-update is not supported on Windows: download and replace es.exe from %s", info.ReleaseURL)
-			}
-			if flagNoInput {
-				return fmt.Errorf("update requires confirmation; cannot run with --no-input (use --check to check only)")
-			}
-
-			fmt.Fprint(cmd.OutOrStdout(), "Do you want to update? [y/N] ")
-			var answer string
-			fmt.Fscanln(os.Stdin, &answer)
-			answer = strings.TrimSpace(strings.ToLower(answer))
-			if answer != "y" && answer != "yes" {
-				fmt.Fprintln(cmd.OutOrStdout(), "Update cancelled.")
-				return nil
-			}
-
-			return performUpdate(cmd.Context(), cmd.OutOrStdout(), info.LatestVersion)
+			return runUpdate(cmd, yes)
 		},
 	}
 
-	cmd.Flags().BoolVar(&checkOnly, "check", false, "Only check if an update is available, don't install")
+	cmd.Flags().BoolVar(&checkOnly, "check", false, "Only report whether an update is available; do not install")
+	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "Install without asking for confirmation")
 
 	return cmd
 }
 
-func performUpdate(ctx context.Context, w io.Writer, version string) error {
-	osName := runtime.GOOS
-	archName := runtime.GOARCH
+// installMethodOf reports how the binary at exe was installed; an unknown
+// path counts as a release install.
+func installMethodOf(exe string) update.InstallMethod {
+	if exe == "" {
+		return update.InstallSelf
+	}
+	home, _ := os.UserHomeDir()
+	return update.DetectInstallMethod(exe, os.Getenv, home)
+}
 
-	// Build the download URL matching the release asset naming convention.
-	downloadURL := fmt.Sprintf(
-		"https://github.com/%s/releases/download/v%s/es-cli_%s_%s.tar.gz",
-		updateRepo, version, osName, archName,
-	)
+func displayVersion(v string) string {
+	if update.IsReleaseVersion(v) {
+		return "v" + strings.TrimPrefix(v, "v")
+	}
+	return v
+}
 
-	fmt.Fprintf(w, "Downloading %s...\n", downloadURL)
+func runUpdateCheck(cmd *cobra.Command) error {
+	format := flagOutput
+	switch format {
+	case "", "table", "json", "yaml":
+	default:
+		return fmt.Errorf("unsupported output format: %s (use table, json, or yaml)", format)
+	}
+	OutputFormat = format
 
-	// Download to a temp directory.
-	tmpDir, err := os.MkdirTemp("", "es-cli-update-*")
+	info, err := checkLatest(cmd.Context(), build.Version, config.ConfigDir())
 	if err != nil {
-		return fmt.Errorf("creating temp directory: %w", err)
+		return err
 	}
-	defer os.RemoveAll(tmpDir)
-
-	archivePath := filepath.Join(tmpDir, "es-cli.tar.gz")
-	if err := downloadFile(ctx, archivePath, downloadURL); err != nil {
-		return fmt.Errorf("downloading update: %w", err)
+	exe, _ := executablePath()
+	method := installMethodOf(exe)
+	result := updateCheckResult{
+		CurrentVersion:  info.CurrentVersion,
+		LatestVersion:   info.LatestVersion,
+		UpdateAvailable: info.Available,
+		ReleaseURL:      update.ReleaseNotesURL(info.LatestVersion),
+		InstallMethod:   string(method),
 	}
-
-	// Download and verify SHA256 checksum.
-	checksumURL := fmt.Sprintf(
-		"https://github.com/%s/releases/download/v%s/checksums.txt",
-		updateRepo, version,
-	)
-	archiveFilename := fmt.Sprintf("es-cli_%s_%s.tar.gz", osName, archName)
-
-	fmt.Fprintf(w, "Verifying checksum...\n")
-	if err := verifyChecksum(ctx, archivePath, checksumURL, archiveFilename); err != nil {
-		return fmt.Errorf("checksum verification failed: %w", err)
+	if format == "json" || format == "yaml" {
+		return output.Print(cmd.OutOrStdout(), format, result, nil)
 	}
 
-	fmt.Fprintf(w, "Extracting...\n")
-
-	// Extract the binary from the tarball.
-	binaryPath, err := extractBinary(archivePath, tmpDir)
-	if err != nil {
-		return fmt.Errorf("extracting update: %w", err)
+	w := cmd.OutOrStdout()
+	available := "no"
+	if info.Available {
+		available = "yes"
 	}
-
-	// Get path to the currently running executable.
-	execPath, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("finding current executable: %w", err)
+	fmt.Fprintf(w, "Current version:  %s\n", displayVersion(info.CurrentVersion))
+	fmt.Fprintf(w, "Latest version:   v%s\n", info.LatestVersion)
+	fmt.Fprintf(w, "Update available: %s\n", available)
+	fmt.Fprintf(w, "Release notes:    %s\n", result.ReleaseURL)
+	if info.Available {
+		fmt.Fprintf(w, "Update with:      %s\n", update.UpdateCommand(method))
 	}
-	execPath, err = filepath.EvalSymlinks(execPath)
-	if err != nil {
-		return fmt.Errorf("resolving executable path: %w", err)
-	}
-
-	fmt.Fprintf(w, "Replacing %s...\n", execPath)
-
-	// Atomically replace: copy to a temp file next to the target, then rename.
-	if err := atomicReplace(binaryPath, execPath); err != nil {
-		return fmt.Errorf("replacing binary: %w", err)
-	}
-
-	fmt.Fprintf(w, "Successfully updated to %s!\n", formatVer(version))
 	return nil
 }
 
-func downloadFile(ctx context.Context, dst, url string) error {
-	client := &http.Client{Timeout: 120 * time.Second}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+func runUpdate(cmd *cobra.Command, yes bool) error {
+	w := cmd.OutOrStdout()
+	if !update.IsReleaseVersion(build.Version) {
+		fmt.Fprintf(w, "es update is not available for development builds (version %q). Install a release to enable it.\n", build.Version)
+		return nil
+	}
+	if updateBlockedByReadOnly(cmd) {
+		return fmt.Errorf("es update is blocked in read-only mode (es update --check still works); remove read_only from the profile, unset ES_READ_ONLY, or drop --read-only to install")
+	}
+
+	info, err := checkLatest(cmd.Context(), build.Version, config.ConfigDir())
 	if err != nil {
 		return err
 	}
-	resp, err := client.Do(req)
+	notesURL := update.ReleaseNotesURL(info.LatestVersion)
+	if !info.Available {
+		fmt.Fprintf(w, "es is already up to date (v%s).\n", info.CurrentVersion)
+		return nil
+	}
+	fmt.Fprintf(w, "Update available: v%s -> v%s\n", info.CurrentVersion, info.LatestVersion)
+
+	exe, err := executablePath()
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("download failed with status %d", resp.StatusCode)
+	method := installMethodOf(exe)
+	if method == update.InstallGo {
+		fmt.Fprintf(w, "es was built from source into %s, so it is not replaced in place.\n", filepath.Dir(exe))
+		fmt.Fprintf(w, "Update with: %s\n", update.UpdateCommand(method))
+		fmt.Fprintf(w, "Release notes: %s\n", notesURL)
+		return nil
 	}
 
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	err = copyUpdatePayload(out, resp.Body)
-	return err
-}
-
-func extractBinary(archivePath, destDir string) (string, error) {
-	f, err := os.Open(archivePath)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	gz, err := gzip.NewReader(f)
-	if err != nil {
-		return "", fmt.Errorf("opening gzip: %w", err)
-	}
-	defer gz.Close()
-
-	tr := tar.NewReader(gz)
-	for {
-		hdr, err := tr.Next()
-		if err == io.EOF {
-			break
+	if !yes {
+		if flagNoInput || !stdinIsTerminal() {
+			return fmt.Errorf("installing es v%s needs confirmation: pass --yes to update without a prompt", info.LatestVersion)
 		}
-		if err != nil {
-			return "", fmt.Errorf("reading tar: %w", err)
+		fmt.Fprint(w, "Update now? [Y/n] ")
+		line, readErr := bufio.NewReader(cmd.InOrStdin()).ReadString('\n')
+		answer := strings.ToLower(strings.TrimSpace(line))
+		if (readErr != nil && line == "") || (answer != "" && answer != "y" && answer != "yes") {
+			fmt.Fprintln(w, "Update cancelled.")
+			return nil
 		}
-
-		name := filepath.Base(hdr.Name)
-		if name != "es" && name != "es-cli" {
-			continue
-		}
-		if hdr.Typeflag != tar.TypeReg {
-			continue
-		}
-
-		// Use a fixed name so no part of the archive entry path reaches the
-		// filesystem (zip-slip); the caller only needs the extracted file.
-		outPath := filepath.Join(destDir, "es")
-		out, err := os.OpenFile(outPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755)
-		if err != nil {
-			return "", err
-		}
-		if err := copyUpdatePayload(out, tr); err != nil {
-			out.Close()
-			return "", err
-		}
-		out.Close()
-		return outPath, nil
 	}
 
-	return "", fmt.Errorf("binary not found in archive")
-}
-
-func atomicReplace(src, dst string) error {
-	// Preserve the permissions of the destination file.
-	dstInfo, err := os.Stat(dst)
-	if err != nil {
-		return fmt.Errorf("stat destination: %w", err)
+	progress := cmd.ErrOrStderr()
+	if flagQuiet {
+		progress = io.Discard
 	}
-	dstMode := dstInfo.Mode()
-
-	// Create a temporary file in the same directory as the destination
-	// so that os.Rename works (same filesystem).
-	dstDir := filepath.Dir(dst)
-	tmpFile, err := os.CreateTemp(dstDir, ".es-update-*")
-	if err != nil {
-		return fmt.Errorf("creating temp file: %w", err)
+	if err := installRelease(cmd.Context(), info.LatestVersion, exe, progress); err != nil {
+		return fmt.Errorf("update failed, es v%s was left in place: %w", info.CurrentVersion, err)
 	}
-	tmpPath := tmpFile.Name()
-
-	// Clean up the temp file on error.
-	defer func() {
-		if tmpPath != "" {
-			os.Remove(tmpPath)
-		}
-	}()
-
-	// Copy the new binary to the temp file.
-	srcFile, err := os.Open(src)
-	if err != nil {
-		tmpFile.Close()
-		return fmt.Errorf("opening new binary: %w", err)
-	}
-
-	if err := copyUpdatePayload(tmpFile, srcFile); err != nil {
-		srcFile.Close()
-		tmpFile.Close()
-		return fmt.Errorf("copying new binary: %w", err)
-	}
-	srcFile.Close()
-
-	if err := tmpFile.Chmod(dstMode); err != nil {
-		tmpFile.Close()
-		return fmt.Errorf("setting permissions: %w", err)
-	}
-
-	if err := tmpFile.Close(); err != nil {
-		return fmt.Errorf("closing temp file: %w", err)
-	}
-
-	// Atomic rename.
-	if err := os.Rename(tmpPath, dst); err != nil {
-		return fmt.Errorf("renaming: %w (you may need to run with sudo)", err)
-	}
-
-	// Clear tmpPath so the deferred cleanup doesn't remove the installed binary.
-	tmpPath = ""
+	update.ClearCache(config.ConfigDir())
+	fmt.Fprintf(w, "Updated es v%s -> v%s\n", info.CurrentVersion, info.LatestVersion)
+	fmt.Fprintf(w, "Release notes: %s\n", notesURL)
 	return nil
 }
 
-// verifyChecksum downloads checksums.txt from the release, finds the expected
-// SHA256 for the given filename, and compares it against the actual file hash.
-func verifyChecksum(ctx context.Context, filePath, checksumURL, expectedFilename string) error {
-	client := &http.Client{Timeout: 30 * time.Second}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, checksumURL, nil)
-	if err != nil {
-		return err
+// updateBlockedByReadOnly applies the same read-only sources as other mutating
+// commands: --read-only, ES_READ_ONLY, and the profile's read_only.
+func updateBlockedByReadOnly(cmd *cobra.Command) bool {
+	if flagReadOnly {
+		return true
 	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("downloading checksums: %w", err)
+	if resolved, _, err := loadAndResolveConfig(cmd); err == nil {
+		return resolved.ReadOnly
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("checksums download failed with status %d", resp.StatusCode)
-	}
-
-	// Parse checksums.txt to find the expected hash.
-	// Format: "<sha256>  <filename>"
-	var expectedHash string
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		line := scanner.Text()
-		parts := strings.Fields(line)
-		if len(parts) == 2 && parts[1] == expectedFilename {
-			expectedHash = parts[0]
-			break
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("reading checksums: %w", err)
-	}
-	if expectedHash == "" {
-		return fmt.Errorf("no checksum found for %s in checksums.txt", expectedFilename)
-	}
-
-	// Compute SHA256 of the downloaded file.
-	f, err := os.Open(filePath)
-	if err != nil {
-		return fmt.Errorf("opening file for checksum: %w", err)
-	}
-	defer f.Close()
-
-	h := sha256.New()
-	if err := copyUpdatePayload(h, f); err != nil {
-		return fmt.Errorf("computing checksum: %w", err)
-	}
-	actualHash := hex.EncodeToString(h.Sum(nil))
-
-	if !strings.EqualFold(actualHash, expectedHash) {
-		return fmt.Errorf("SHA256 mismatch: expected %s, got %s", expectedHash, actualHash)
-	}
-
-	return nil
-}
-
-func formatVer(v string) string {
-	if strings.HasPrefix(v, "v") {
-		return v
-	}
-	return "v" + v
+	return envFlagEnabled("ES_READ_ONLY")
 }

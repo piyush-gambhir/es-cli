@@ -3,10 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/piyush-gambhir/es-cli/cli-go/cmd/cluster"
 	cmdconfig "github.com/piyush-gambhir/es-cli/cli-go/cmd/config"
@@ -44,9 +45,31 @@ var (
 // OutputFormat is set during PersistentPreRunE and exported for use by main.go.
 var OutputFormat string
 
+// Test seams for the update notifier.
+var (
+	stderrIsTerminal = func() bool { return term.IsTerminal(int(os.Stderr.Fd())) }
+	startUpdateCheck = update.StartCheck
+)
+
 // Execute is the main entry point for the CLI.
 func Execute() error {
+	// A Windows `es update` renames the running es.exe to es.exe.old; delete
+	// it on the next start.
+	if runtime.GOOS == "windows" {
+		if exe, err := update.ExecutablePath(); err == nil {
+			update.RemoveOldExecutable(exe)
+		}
+	}
 	return newRootCmd().Execute()
+}
+
+// commandNames lists the names on cmd's path below the root.
+func commandNames(cmd *cobra.Command) []string {
+	var names []string
+	for c := cmd; c != nil && c.HasParent(); c = c.Parent() {
+		names = append(names, c.Name())
+	}
+	return names
 }
 
 // loadAndResolveConfig loads the config file and resolves auth from flags/env/config.
@@ -126,8 +149,8 @@ func newRootCmd() *cobra.Command {
 		IOStreams: cmdutil.DefaultIOStreams(),
 	}
 
-	// Channel-based update check result passing from PersistentPreRun to PersistentPostRun.
-	var updateResult chan *update.UpdateInfo
+	// Started in PersistentPreRunE, reported in PersistentPostRun.
+	var updateCheck *update.Check
 
 	rootCmd := &cobra.Command{
 		Use:   "es",
@@ -153,18 +176,20 @@ Claude Code skill: https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md`,
 			f.Quiet = flagQuiet
 			f.Verbose = flagVerbose
 
-			// Start background update check for most commands.
-			cmdName := cmd.Name()
-			skipUpdateCheck := cmdName == "update" || cmdName == "version" || cmdName == "completion" || cmdName == "help"
-			if !skipUpdateCheck && build.Version != "dev" && build.Version != "" {
-				updateResult = make(chan *update.UpdateInfo, 1)
-				go func() {
-					info, _ := update.CheckForUpdate(build.Version, updateRepo, config.ConfigDir())
-					updateResult <- info
-				}()
+			// Start the background update check unless this invocation must
+			// stay quiet (see update.ShouldCheck).
+			if update.ShouldCheck(update.NotifierOptions{
+				Version:          build.Version,
+				Commands:         commandNames(cmd),
+				Quiet:            flagQuiet,
+				StderrIsTerminal: stderrIsTerminal(),
+				Getenv:           os.Getenv,
+			}) {
+				updateCheck = startUpdateCheck(build.Version, config.ConfigDir())
 			}
 
 			// Skip auth setup for commands that don't need it.
+			cmdName := cmd.Name()
 			if cmdName == "version" || cmdName == "completion" || cmdName == "help" || cmdName == "update" {
 				return nil
 			}
@@ -192,17 +217,12 @@ Claude Code skill: https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md`,
 			return checkPermissions(cmd, resolved)
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
-			if updateResult == nil {
+			if updateCheck == nil {
 				return
 			}
-			select {
-			case info := <-updateResult:
-				if info != nil && info.Available {
-					update.PrintUpdateNotice(os.Stderr, info)
-				}
-			case <-time.After(2 * time.Second):
-				// Don't block command output waiting for update check.
-			}
+			// Prints only if the check already finished; never waits.
+			exe, _ := executablePath()
+			updateCheck.Notify(f.IOStreams.ErrOut, installMethodOf(exe))
 		},
 	}
 

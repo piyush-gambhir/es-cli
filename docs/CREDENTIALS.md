@@ -632,6 +632,7 @@ Environment variables override profile values but are overridden by CLI flags.
 | `ES_NO_INPUT` | Disable interactive prompts | `true` |
 | `ES_QUIET` | Suppress informational output | `true` |
 | `ES_VERBOSE` | Enable verbose HTTP logging | `true` |
+| `ES_NO_UPDATE_NOTIFIER` | Turn off the new-release notice (any value; `NO_UPDATE_NOTIFIER` and `CI` also work) | `1` |
 
 **Auth method auto-detection from environment variables:**
 

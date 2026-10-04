@@ -16,7 +16,7 @@ Designed for both human operators and coding agents (LLMs). All commands support
 - Three auth methods -- basic auth, API key, bearer token
 - TLS support -- custom CA certificates and insecure mode
 - Safety features -- read-only mode, confirmation prompts, idempotent flags
-- Auto-update -- checks for new versions, `es update` to self-update (macOS and Linux; on Windows, use `es update --check` and replace `es.exe` from the release page)
+- Auto-update -- a once-a-day new-release notice in interactive terminals, and `es update` to self-update on macOS, Linux, and Windows
 - Agent-friendly -- comprehensive help text, structured output for LLM coding agents (`CLAUDE.md` guide, `SKILL.md` for Cursor-style skills)
 - Cross-platform -- macOS and Linux (amd64 and arm64), Windows (amd64)
 
@@ -62,6 +62,26 @@ curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/es-cli/main/install.
 git clone https://github.com/piyush-gambhir/es-cli.git
 cd es-cli/cli-go && make install
 ```
+
+### Updating
+
+```bash
+es update                  # show the new version, ask, then install it
+es update --yes            # install without asking
+es update --check          # only report current and latest versions (add -o json for scripts)
+```
+
+`es update` downloads the release archive for your OS/arch, verifies its SHA-256 checksum against `checksums.txt`, and replaces the binary in place on macOS, Linux, and Windows (on Windows, the running `es.exe` is renamed to `es.exe.old` and deleted on the next run). If the binary's directory is not writable, re-run with `sudo` or reinstall with the install script into a writable `INSTALL_DIR`. A binary built with `make install` into a Go bin directory is not replaced: run `git pull && make install` in your checkout instead.
+
+When a newer release exists, other commands print a short notice on stderr after their output, at most once a day per release:
+
+```
+A new version of es is available: v0.1.9 -> v0.1.10
+Update with: es update
+Release notes: https://github.com/piyush-gambhir/es-cli/releases/tag/v0.1.10
+```
+
+The notice only appears in an interactive terminal. It is never shown (and GitHub is not contacted) when stderr is not a terminal, `CI` is set, or with `--quiet`. Turn it off with `ES_NO_UPDATE_NOTIFIER=1` or `NO_UPDATE_NOTIFIER=1`.
 
 ## Quick Start
 
@@ -172,6 +192,7 @@ es cluster health --profile staging
 | `ES_NO_INPUT` | Disable interactive prompts |
 | `ES_QUIET` | Suppress informational output |
 | `ES_VERBOSE` | Enable verbose HTTP logging |
+| `ES_NO_UPDATE_NOTIFIER` | Turn off the new-release notice (any value; `NO_UPDATE_NOTIFIER` and `CI` also work) |
 
 ## Commands
 
@@ -188,7 +209,7 @@ es cluster health --profile staging
 | `es config` | View/set configuration, manage profiles | |
 | `es login` | Interactive authentication setup | |
 | `es version` | Print CLI version | |
-| `es update` | Self-update to latest version (not on Windows; use `--check`) | |
+| `es update` | Self-update to the latest release (`--check` to only check) | |
 | `es completion` | Generate shell completions | |
 
 ## Output Formats
