@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +17,10 @@ const (
 	cacheDuration = 24 * time.Hour
 	cacheFileName = "update-check.json"
 )
+
+// goos is runtime.GOOS; tests override it. `es update` cannot install on
+// Windows, so the notice only links the release there.
+var goos = runtime.GOOS
 
 // UpdateInfo holds information about an available update.
 type UpdateInfo struct {
@@ -76,7 +81,11 @@ func PrintUpdateNotice(w io.Writer, info *UpdateInfo) {
 	fmt.Fprintf(w, "\n")
 	fmt.Fprintf(w, "A new version of es is available: %s → %s\n",
 		formatVersion(info.CurrentVersion), formatVersion(info.LatestVersion))
-	fmt.Fprintf(w, "Run `es update` to update, or download from:\n")
+	if goos == "windows" {
+		fmt.Fprintf(w, "Download it from:\n")
+	} else {
+		fmt.Fprintf(w, "Run `es update` to update, or download from:\n")
+	}
 	fmt.Fprintf(w, "%s\n", info.ReleaseURL)
 }
 
