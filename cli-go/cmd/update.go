@@ -216,8 +216,10 @@ func extractBinary(archivePath, destDir string) (string, error) {
 			continue
 		}
 
-		outPath := filepath.Join(destDir, name)
-		out, err := os.OpenFile(outPath, os.O_CREATE|os.O_WRONLY, 0o755)
+		// Use a fixed name so no part of the archive entry path reaches the
+		// filesystem (zip-slip); the caller only needs the extracted file.
+		outPath := filepath.Join(destDir, "es")
+		out, err := os.OpenFile(outPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755)
 		if err != nil {
 			return "", err
 		}
