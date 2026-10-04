@@ -25,6 +25,12 @@ import (
 
 const updateRepo = "piyush-gambhir/es-cli"
 
+// Test seams: tests override these to exercise other platforms and avoid the network.
+var (
+	goos           = runtime.GOOS
+	checkForUpdate = update.CheckForUpdateFresh
+)
+
 func newUpdateCmd() *cobra.Command {
 	var checkOnly bool
 
@@ -32,7 +38,7 @@ func newUpdateCmd() *cobra.Command {
 		Use:         "update",
 		Annotations: map[string]string{"mutates": "true"},
 		Short:       "Update es to the latest version",
-		Long:        "Check for and install the latest version of the es CLI from GitHub Releases.",
+		Long:        "Check for and install the latest version of the es CLI from GitHub Releases.\n\nOn Windows, self-update is not supported: use --check, then download the release .zip and replace es.exe.",
 		Args:        cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			configDir := config.ConfigDir()
@@ -45,7 +51,7 @@ func newUpdateCmd() *cobra.Command {
 			}
 
 			fmt.Fprintln(cmd.OutOrStdout(), "Checking for updates...")
-			info, err := update.CheckForUpdateFresh(currentVersion, updateRepo, configDir)
+			info, err := checkForUpdate(currentVersion, updateRepo, configDir)
 			if err != nil {
 				return fmt.Errorf("checking for updates: %w", err)
 			}
@@ -72,6 +78,11 @@ func newUpdateCmd() *cobra.Command {
 				}
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Release:   %s\n\n", info.ReleaseURL)
+			// Windows releases ship as .zip archives and a running .exe cannot be
+			// renamed over, so point the user at the release page instead.
+			if goos == "windows" {
+				return fmt.Errorf("self-update is not supported on Windows: download and replace es.exe from %s", info.ReleaseURL)
+			}
 			if flagNoInput {
 				return fmt.Errorf("update requires confirmation; cannot run with --no-input (use --check to check only)")
 			}

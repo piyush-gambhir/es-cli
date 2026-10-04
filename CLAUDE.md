@@ -368,7 +368,7 @@ es config use-profile staging
 |---------|-------------|
 | `es login` | Interactively log in and save a connection profile |
 | `es version` | Print CLI version, commit, and build date |
-| `es update` | Check for and install CLI updates (--check for check only) |
+| `es update` | Check for and install CLI updates (--check for check only; install is not supported on Windows) |
 | `es completion` | Generate shell completion scripts |
 
 ### `es config` -- Manage CLI configuration

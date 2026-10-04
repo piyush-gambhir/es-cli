@@ -225,7 +225,7 @@ git push origin v0.2.0
 ```
 
 This triggers the release workflow to:
-1. Build binaries for all platforms (macOS, Linux, Windows -- amd64 and arm64)
+1. Build binaries for macOS and Linux (amd64 and arm64) and Windows (amd64)
 2. Create a GitHub Release with assets
 3. Generate a changelog
 4. Publish SHA256 checksums
