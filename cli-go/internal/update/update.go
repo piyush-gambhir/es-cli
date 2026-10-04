@@ -1,235 +1,219 @@
+// Package update looks up the latest es release on GitHub, caches the result,
+// prints the new-version notice, and installs releases in place.
 package update
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
 const (
-	cacheDuration = 24 * time.Hour
+	// Repo is the GitHub repository that publishes es releases.
+	Repo = "piyush-gambhir/es-cli"
+
+	binaryName    = "es"
+	projectName   = "es-cli"
 	cacheFileName = "update-check.json"
+	cacheTTL      = 24 * time.Hour
+
+	// BackgroundTimeout bounds the notifier's GitHub request.
+	BackgroundTimeout = 3 * time.Second
+	// ForegroundTimeout bounds the GitHub request made by `es update`.
+	ForegroundTimeout = 15 * time.Second
 )
 
-// goos is runtime.GOOS; tests override it. `es update` cannot install on
-// Windows, so the notice only links the release there.
-var goos = runtime.GOOS
+// Test seams: tests point these at httptest servers and fix the clock.
+var (
+	apiBaseURL      = "https://api.github.com"
+	downloadBaseURL = "https://github.com"
+	now             = time.Now
+)
 
-// UpdateInfo holds information about an available update.
-type UpdateInfo struct {
-	Available      bool
+// Release is the latest published release.
+type Release struct {
+	Version     string // without the "v" prefix
+	PublishedAt string
+}
+
+// Info compares the running version with the latest known release.
+type Info struct {
 	CurrentVersion string
 	LatestVersion  string
-	ReleaseURL     string
-	PublishedAt    string
+	Available      bool
 }
 
-// cacheEntry is the on-disk representation of a cached update check.
+// cacheEntry is update-check.json in the config dir. A failed check still
+// records LastChecked so a broken network does not cause a request per command.
 type cacheEntry struct {
-	LastChecked   string `json:"last_checked"`
-	LatestVersion string `json:"latest_version"`
-	ReleaseURL    string `json:"release_url"`
-	PublishedAt   string `json:"published_at,omitempty"`
+	LastChecked     time.Time `json:"last_checked,omitzero"`
+	LatestVersion   string    `json:"latest_version,omitempty"`
+	PublishedAt     string    `json:"published_at,omitempty"`
+	NotifiedVersion string    `json:"notified_version,omitempty"`
+	NotifiedAt      time.Time `json:"notified_at,omitzero"`
 }
 
-// githubRelease represents the relevant fields from the GitHub releases API.
-type githubRelease struct {
-	TagName     string `json:"tag_name"`
-	HTMLURL     string `json:"html_url"`
-	PublishedAt string `json:"published_at"`
+var semverPattern = regexp.MustCompile(`^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$`)
+
+// IsReleaseVersion reports whether v is a semantic version, as stamped into
+// release builds. "dev", empty, and bare commit hashes are not.
+func IsReleaseVersion(v string) bool {
+	return semverPattern.MatchString(v)
 }
 
-// CheckForUpdate checks GitHub for a newer release. It uses a 24-hour file
-// cache to avoid hitting the API on every invocation.
-func CheckForUpdate(currentVersion, repo, configDir string) (*UpdateInfo, error) {
-	if currentVersion == "" || currentVersion == "dev" {
-		return &UpdateInfo{CurrentVersion: currentVersion}, nil
-	}
-
-	// Try reading from cache first.
-	cachePath := filepath.Join(configDir, cacheFileName)
-	if info, err := readCache(cachePath, currentVersion); err == nil && info != nil {
-		return info, nil
-	}
-
-	// Cache miss or stale — fetch from GitHub.
-	return fetchAndCache(currentVersion, repo, cachePath)
+// ReleaseNotesURL is the GitHub release page for version.
+func ReleaseNotesURL(version string) string {
+	return fmt.Sprintf("https://github.com/%s/releases/tag/v%s", Repo, strings.TrimPrefix(version, "v"))
 }
 
-// CheckForUpdateFresh always checks GitHub, bypassing the cache.
-func CheckForUpdateFresh(currentVersion, repo, configDir string) (*UpdateInfo, error) {
-	if currentVersion == "" || currentVersion == "dev" {
-		return &UpdateInfo{CurrentVersion: currentVersion}, nil
-	}
+// FetchLatest asks GitHub for the latest release.
+func FetchLatest(ctx context.Context, timeout time.Duration) (*Release, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 
-	cachePath := filepath.Join(configDir, cacheFileName)
-	return fetchAndCache(currentVersion, repo, cachePath)
-}
-
-// PrintUpdateNotice writes an update notice to the given writer.
-func PrintUpdateNotice(w io.Writer, info *UpdateInfo) {
-	if info == nil || !info.Available {
-		return
-	}
-	fmt.Fprintf(w, "\n")
-	fmt.Fprintf(w, "A new version of es is available: %s → %s\n",
-		formatVersion(info.CurrentVersion), formatVersion(info.LatestVersion))
-	if goos == "windows" {
-		fmt.Fprintf(w, "Download it from:\n")
-	} else {
-		fmt.Fprintf(w, "Run `es update` to update, or download from:\n")
-	}
-	fmt.Fprintf(w, "%s\n", info.ReleaseURL)
-}
-
-func readCache(cachePath, currentVersion string) (*UpdateInfo, error) {
-	data, err := os.ReadFile(cachePath)
-	if err != nil {
-		return nil, err
-	}
-
-	var entry cacheEntry
-	if err := json.Unmarshal(data, &entry); err != nil {
-		return nil, err
-	}
-
-	lastChecked, err := time.Parse(time.RFC3339, entry.LastChecked)
-	if err != nil {
-		return nil, err
-	}
-
-	if time.Since(lastChecked) > cacheDuration {
-		return nil, fmt.Errorf("cache expired")
-	}
-
-	available, _ := isNewer(entry.LatestVersion, currentVersion)
-	return &UpdateInfo{
-		Available:      available,
-		CurrentVersion: currentVersion,
-		LatestVersion:  entry.LatestVersion,
-		ReleaseURL:     entry.ReleaseURL,
-		PublishedAt:    entry.PublishedAt,
-	}, nil
-}
-
-func fetchAndCache(currentVersion, repo, cachePath string) (*UpdateInfo, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
-
-	client := &http.Client{Timeout: 5 * time.Second}
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiBaseURL+"/repos/"+Repo+"/releases/latest", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	req.Header.Set("User-Agent", "es-cli")
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", projectName)
 
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("checking for updates: %w", err)
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("checking for updates: GitHub returned HTTP %d", resp.StatusCode)
 	}
 
-	var release githubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+	var body struct {
+		TagName     string `json:"tag_name"`
+		PublishedAt string `json:"published_at"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&body); err != nil {
 		return nil, fmt.Errorf("decoding release: %w", err)
 	}
-
-	latestVersion := strings.TrimPrefix(release.TagName, "v")
-
-	// Write cache.
-	entry := cacheEntry{
-		LastChecked:   time.Now().UTC().Format(time.RFC3339),
-		LatestVersion: latestVersion,
-		ReleaseURL:    release.HTMLURL,
-		PublishedAt:   release.PublishedAt,
+	// The tag ends up in download URLs, so accept only a plain version.
+	if !IsReleaseVersion(body.TagName) {
+		return nil, fmt.Errorf("latest release has an unexpected tag %q", body.TagName)
 	}
-	writeCache(cachePath, &entry)
-
-	available, _ := isNewer(latestVersion, currentVersion)
-	return &UpdateInfo{
-		Available:      available,
-		CurrentVersion: currentVersion,
-		LatestVersion:  latestVersion,
-		ReleaseURL:     release.HTMLURL,
-		PublishedAt:    release.PublishedAt,
-	}, nil
+	return &Release{Version: strings.TrimPrefix(body.TagName, "v"), PublishedAt: body.PublishedAt}, nil
 }
 
-func writeCache(cachePath string, entry *cacheEntry) {
-	dir := filepath.Dir(cachePath)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+// CheckNow queries GitHub (ignoring any cached result), records the answer in
+// the cache, and compares it with current.
+func CheckNow(ctx context.Context, current, configDir string) (*Info, error) {
+	rel, err := FetchLatest(ctx, ForegroundTimeout)
+	if err != nil {
+		return nil, err
+	}
+	entry := loadCache(configDir)
+	entry.LastChecked = now().UTC()
+	entry.LatestVersion = rel.Version
+	entry.PublishedAt = rel.PublishedAt
+	saveCache(configDir, entry)
+	return newInfo(current, rel.Version), nil
+}
+
+// Cached returns what the cache knows about the latest release, without any
+// network access. ok is false when nothing is cached.
+func Cached(current, configDir string) (info *Info, ok bool) {
+	entry := loadCache(configDir)
+	if entry.LatestVersion == "" {
+		return nil, false
+	}
+	return newInfo(current, entry.LatestVersion), true
+}
+
+// ClearCache removes the cached check, for example after an update.
+func ClearCache(configDir string) {
+	_ = os.Remove(filepath.Join(configDir, cacheFileName))
+}
+
+func newInfo(current, latest string) *Info {
+	available, _ := isNewer(latest, current)
+	return &Info{CurrentVersion: strings.TrimPrefix(current, "v"), LatestVersion: latest, Available: available}
+}
+
+func loadCache(configDir string) cacheEntry {
+	var entry cacheEntry
+	data, err := os.ReadFile(filepath.Join(configDir, cacheFileName))
+	if err != nil {
+		return cacheEntry{}
+	}
+	if json.Unmarshal(data, &entry) != nil {
+		return cacheEntry{}
+	}
+	return entry
+}
+
+// saveCache writes the cache through a temp file and rename, so a process that
+// exits mid-write never leaves a truncated file behind. Errors are ignored: the
+// cache is an optimization.
+func saveCache(configDir string, entry cacheEntry) {
+	if err := os.MkdirAll(configDir, 0o700); err != nil {
 		return
 	}
 	data, err := json.MarshalIndent(entry, "", "  ")
 	if err != nil {
 		return
 	}
-	_ = os.WriteFile(cachePath, data, 0o600)
+	tmp, err := os.CreateTemp(configDir, ".update-check-*")
+	if err != nil {
+		return
+	}
+	_, werr := tmp.Write(data)
+	cerr := tmp.Close()
+	if werr != nil || cerr != nil || os.Rename(tmp.Name(), filepath.Join(configDir, cacheFileName)) != nil {
+		_ = os.Remove(tmp.Name())
+	}
 }
 
-// isNewer returns true if latest is a higher semver than current.
+// isNewer reports whether latest is a higher version than current. Pre-release
+// and build suffixes are ignored, so a source build described as
+// v0.1.9-3-gabc123 counts as 0.1.9.
 func isNewer(latest, current string) (bool, error) {
-	latest = strings.TrimPrefix(latest, "v")
-	current = strings.TrimPrefix(current, "v")
-
-	lMajor, lMinor, lPatch, err := parseSemver(latest)
+	l, err := parseSemver(latest)
 	if err != nil {
 		return false, err
 	}
-	cMajor, cMinor, cPatch, err := parseSemver(current)
+	c, err := parseSemver(current)
 	if err != nil {
 		return false, err
 	}
-
-	if lMajor != cMajor {
-		return lMajor > cMajor, nil
+	for i := range l {
+		if l[i] != c[i] {
+			return l[i] > c[i], nil
+		}
 	}
-	if lMinor != cMinor {
-		return lMinor > cMinor, nil
-	}
-	return lPatch > cPatch, nil
+	return false, nil
 }
 
-func parseSemver(v string) (major, minor, patch int, err error) {
-	// Strip any pre-release or metadata suffix (e.g. "1.2.3-rc1+build").
+func parseSemver(v string) ([3]int, error) {
+	var out [3]int
+	v = strings.TrimPrefix(v, "v")
 	if idx := strings.IndexAny(v, "-+"); idx != -1 {
 		v = v[:idx]
 	}
-
 	parts := strings.Split(v, ".")
 	if len(parts) != 3 {
-		return 0, 0, 0, fmt.Errorf("invalid semver: %s", v)
+		return out, fmt.Errorf("invalid version %q", v)
 	}
-
-	major, err = strconv.Atoi(parts[0])
-	if err != nil {
-		return 0, 0, 0, fmt.Errorf("invalid major version: %s", parts[0])
+	for i, p := range parts {
+		n, err := strconv.Atoi(p)
+		if err != nil {
+			return out, fmt.Errorf("invalid version %q", v)
+		}
+		out[i] = n
 	}
-	minor, err = strconv.Atoi(parts[1])
-	if err != nil {
-		return 0, 0, 0, fmt.Errorf("invalid minor version: %s", parts[1])
-	}
-	patch, err = strconv.Atoi(parts[2])
-	if err != nil {
-		return 0, 0, 0, fmt.Errorf("invalid patch version: %s", parts[2])
-	}
-	return major, minor, patch, nil
-}
-
-func formatVersion(v string) string {
-	if strings.HasPrefix(v, "v") {
-		return v
-	}
-	return "v" + v
+	return out, nil
 }

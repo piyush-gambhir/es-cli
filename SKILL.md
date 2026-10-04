@@ -1,9 +1,9 @@
 ---
 name: es-cli
-description: "Expert guide for the es (Elasticsearch) CLI — cluster health, indices, aliases, templates, component templates, documents, search, ingest pipelines, ILM, nodes, shards, and config profiles. Use this skill when the user mentions Elasticsearch operations from the terminal, es-cli, index lifecycle, reindex, rollover, allocation explain, or automating ES with a CLI. Trigger for coding agents that need exact commands, flags, auth env vars, or JSON output for scripts."
+description: "Expert guide for the es (Elasticsearch) CLI: cluster health, indices, aliases, templates, component templates, documents, search, ingest pipelines, ILM, nodes, shards, and config profiles. Use this skill when the user mentions Elasticsearch operations from the terminal, es-cli, index lifecycle, reindex, rollover, allocation explain, or automating ES with a CLI. Trigger for coding agents that need exact commands, flags, auth env vars, or JSON output for scripts."
 ---
 
-# Elasticsearch CLI (`es`) — agent skill
+# Elasticsearch CLI (`es`): agent skill
 
 ## Maintainer note
 
@@ -38,5 +38,10 @@ Use this when the repo is unavailable or to confirm flags after upgrades.
 
 ```bash
 curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/es-cli/main/install.sh | sh
-# or: clone repo && make install — see README.md
+# or: clone repo && make install (see README.md)
+
+es update                  # install the latest release (--yes skips the prompt)
+es update --check -o json  # current_version, latest_version, update_available, release_url, install_method
 ```
+
+In interactive terminals `es` prints a once-a-day notice on stderr when a newer release exists. It is never shown when stderr is not a terminal, `CI` is set, or `ES_NO_UPDATE_NOTIFIER=1` / `NO_UPDATE_NOTIFIER=1` is set.
