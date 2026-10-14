@@ -4,6 +4,17 @@
 
 This document is the complete, authoritative manual for the `es` CLI. It is intended to be fetched and read by an LLM or coding agent so it can drive the tool correctly with zero prior knowledge. Everything below reflects the actual command surface of the tool.
 
+## Offline command resolution
+
+`es commands resolve -- <arguments>` parses a fresh command tree without executing the target, reading config or credentials, or contacting the network. It always returns JSON with `command`, `effect` (`read`, `remote_write`, or `local_write`), `conditional`, `interactive`, `secret_output`, user-set `flags`, and positional `args`. Effects follow command annotations; unknown commands, command groups, and invalid flags return an error with exit status 1.
+
+```bash
+es commands resolve -- cluster health
+es commands resolve -- -o json index delete my-index --confirm
+```
+
+`config view` has `secret_output: true` because its configuration output includes stored credentials.
+
 ## About
 
 `es` (the Elasticsearch CLI) is a command-line client for operating Elasticsearch clusters from a terminal or from automation. It is designed for both human operators and coding agents (LLMs): every command supports `--help`, and `-o json` / `-o yaml` produce machine-readable output.

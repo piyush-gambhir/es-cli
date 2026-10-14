@@ -23,6 +23,8 @@ export ES_USERNAME=elastic
 export ES_PASSWORD=changeme
 ```
 
+`es commands resolve -- <arguments>` uses the real command parser offline and always returns JSON describing the command, effect, flags, positional arguments, and interaction and secret-output annotations.
+
 ## Output Formats
 
 All list/get commands support three output formats via `-o`:
