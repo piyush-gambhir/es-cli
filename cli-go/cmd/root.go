@@ -139,6 +139,10 @@ func checkPermissions(cmd *cobra.Command, resolved *config.ResolvedConfig) error
 		effectiveReadOnly = true
 	}
 	if effectiveReadOnly && cmd.Annotations != nil && cmd.Annotations["mutates"] == "true" {
+		// Commands that read unless a writing flag is given stay usable in read-only mode.
+		if flag := cmd.Annotations["mutates-when-flag"]; flag != "" && !cmd.Flags().Changed(flag) {
+			return nil
+		}
 		return fmt.Errorf("command '%s' is blocked in read-only mode; remove read_only from the profile or disable the read-only environment setting to permit writes", cmd.CommandPath())
 	}
 	return nil

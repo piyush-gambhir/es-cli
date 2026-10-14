@@ -70,10 +70,8 @@ Examples:
 
 	cmd.Flags().StringArrayVar(&set, "set", nil, "Set a setting as key=value (repeatable)")
 
-	// Mark as mutating only when --set is provided; the annotation is checked
-	// at runtime by the root PersistentPreRunE, so we set it unconditionally
-	// and let the read path run harmlessly.
-	cmd.Annotations = map[string]string{"mutates": "true"}
+	// Writes only with --set; without it this is a read and runs in read-only mode.
+	cmd.Annotations = map[string]string{"mutates": "true", "mutates-when-flag": "set"}
 
 	return cmd
 }
