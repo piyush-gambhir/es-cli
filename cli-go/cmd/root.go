@@ -243,6 +243,7 @@ Claude Code skill: https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md`,
 	rootCmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "Enable verbose HTTP logging")
 
 	// Register subcommands.
+	rootCmd.AddCommand(newCommandsCmd())
 	rootCmd.AddCommand(newVersionCmd())
 	rootCmd.AddCommand(newUpdateCmd())
 	rootCmd.AddCommand(newLoginCmd(f))

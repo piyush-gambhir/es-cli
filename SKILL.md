@@ -5,6 +5,8 @@ description: "Expert guide for the es (Elasticsearch) CLI: cluster health, indic
 
 # Elasticsearch CLI (`es`): agent skill
 
+`es commands resolve -- <arguments>` uses the real command parser offline and always returns JSON describing the command, effect, flags, positional arguments, and interaction and secret-output annotations.
+
 ## Maintainer note
 
 **When you change the CLI** (commands, flags, auth, config, output): update **`CLAUDE.md`** and any affected **`README.md` / `docs/`** in the same PR. If the change affects what this skill claims (scope, install, major workflows), update the YAML **`description`** above or the sections below. See **`CONTRIBUTING.md` → Documentation and agent materials**.

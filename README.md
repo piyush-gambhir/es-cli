@@ -4,6 +4,8 @@ A command-line interface for managing Elasticsearch clusters -- indices, documen
 
 Designed for both human operators and coding agents (LLMs). All commands support `--help` for detailed usage, and `-o json` / `-o yaml` for machine-readable output.
 
+`es commands resolve -- <arguments>` uses the real command parser offline and always returns JSON describing the command, effect, flags, positional arguments, and interaction and secret-output annotations.
+
 [![Go Version](https://img.shields.io/github/go-mod/go-version/piyush-gambhir/es-cli)](https://go.dev/)
 [![Release](https://img.shields.io/github/v/release/piyush-gambhir/es-cli)](https://github.com/piyush-gambhir/es-cli/releases)
 [![License](https://img.shields.io/github/license/piyush-gambhir/es-cli)](LICENSE)

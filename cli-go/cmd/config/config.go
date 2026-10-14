@@ -28,9 +28,10 @@ func NewCmdConfig(f *cmdutil.Factory) *cobra.Command {
 
 func newCmdConfigView(f *cmdutil.Factory) *cobra.Command {
 	return &cobra.Command{
-		Use:   "view",
-		Short: "Display the current configuration",
-		Args:  cobra.NoArgs,
+		Use:         "view",
+		Short:       "Display the current configuration",
+		Annotations: map[string]string{"secret-output": "true"},
+		Args:        cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load()
 			if err != nil {
