@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+
+	"github.com/piyush-gambhir/es-cli/cli-go/internal/config"
 )
 
 // expectedMutatingPaths is the authoritative list of commands that must carry
@@ -131,6 +133,31 @@ func TestMutatingAnnotations(t *testing.T) {
 	for _, p := range readOnlyPaths {
 		if foundMutating[p] {
 			t.Errorf("read-only command %q should NOT have mutates annotation", p)
+		}
+	}
+}
+
+// index settings and index mappings read unless --set / --file is given, so their
+// read forms must run in read-only mode while the write forms stay blocked.
+func TestConditionalWritesInReadOnlyMode(t *testing.T) {
+	resolved := &config.ResolvedConfig{ReadOnly: true}
+	for _, tc := range []struct {
+		path  []string
+		flag  string
+		value string
+	}{{[]string{"index", "settings"}, "set", "index.number_of_replicas=1"}, {[]string{"index", "mappings"}, "file", "body.json"}} {
+		cmd, _, err := newRootCmd().Find(tc.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := checkPermissions(cmd, resolved); err != nil {
+			t.Errorf("%v read form blocked in read-only mode: %v", tc.path, err)
+		}
+		if err := cmd.Flags().Set(tc.flag, tc.value); err != nil {
+			t.Fatal(err)
+		}
+		if err := checkPermissions(cmd, resolved); err == nil {
+			t.Errorf("%v with --%s allowed in read-only mode", tc.path, tc.flag)
 		}
 	}
 }
