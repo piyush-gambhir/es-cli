@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 )
 
 // GetDocument retrieves a single document by index and ID.
 func (c *Client) GetDocument(ctx context.Context, index, id string) (json.RawMessage, error) {
-	resp, err := c.Get(ctx, fmt.Sprintf("/%s/_doc/%s", index, id))
+	resp, err := c.Get(ctx, fmt.Sprintf("/%s/_doc/%s", index, url.PathEscape(id)))
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +29,7 @@ func (c *Client) IndexDocument(ctx context.Context, index string, id string, bod
 	if id == "" {
 		resp, err = c.Post(ctx, fmt.Sprintf("/%s/_doc", index), body)
 	} else {
-		resp, err = c.Put(ctx, fmt.Sprintf("/%s/_doc/%s", index, id), body)
+		resp, err = c.Put(ctx, fmt.Sprintf("/%s/_doc/%s", index, url.PathEscape(id)), body)
 	}
 	if err != nil {
 		return nil, err
@@ -42,7 +43,7 @@ func (c *Client) IndexDocument(ctx context.Context, index string, id string, bod
 
 // DeleteDocument deletes a document by index and ID.
 func (c *Client) DeleteDocument(ctx context.Context, index, id string) error {
-	resp, err := c.Delete(ctx, fmt.Sprintf("/%s/_doc/%s", index, id))
+	resp, err := c.Delete(ctx, fmt.Sprintf("/%s/_doc/%s", index, url.PathEscape(id)))
 	if err != nil {
 		return err
 	}

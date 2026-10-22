@@ -32,3 +32,52 @@ func TestBulkIndexReturnsPartialFailure(t *testing.T) {
 		t.Fatalf("response should be preserved for output: %s", result)
 	}
 }
+
+func TestDocumentIDIsOnePathSegment(t *testing.T) {
+	for _, method := range []string{http.MethodGet, http.MethodPut, http.MethodDelete} {
+		t.Run(method, func(t *testing.T) {
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != method || r.URL.EscapedPath() != "/logs/_doc/a%2Fb%3Fc%23d%25" || r.URL.RawQuery != "" {
+					t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{}`))
+			}))
+			defer ts.Close()
+			c, err := NewClient(&config.ResolvedConfig{URL: ts.URL})
+			if err != nil {
+				t.Fatal(err)
+			}
+			switch method {
+			case http.MethodGet:
+				_, err = c.GetDocument(context.Background(), "logs", "a/b?c#d%")
+			case http.MethodPut:
+				_, err = c.IndexDocument(context.Background(), "logs", "a/b?c#d%", map[string]string{"value": "test"})
+			case http.MethodDelete:
+				err = c.DeleteDocument(context.Background(), "logs", "a/b?c#d%")
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestFieldCapsEncodesFields(t *testing.T) {
+	fields := "message&include_unmapped=true,#percent%"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/logs-*,metrics-*/_field_caps" || r.URL.Query().Get("fields") != fields || len(r.URL.Query()) != 1 {
+			t.Errorf("unexpected request URL: %s", r.URL)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer ts.Close()
+	c, err := NewClient(&config.ResolvedConfig{URL: ts.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.FieldCaps(context.Background(), "logs-*,metrics-*", fields); err != nil {
+		t.Fatal(err)
+	}
+}

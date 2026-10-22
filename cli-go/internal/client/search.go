@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 )
 
 // Search executes a search query against the given index.
@@ -62,7 +63,7 @@ func (c *Client) MultiSearch(ctx context.Context, body io.Reader) (json.RawMessa
 
 // FieldCaps returns field capabilities for the given index and fields.
 func (c *Client) FieldCaps(ctx context.Context, index string, fields string) (json.RawMessage, error) {
-	resp, err := c.Get(ctx, fmt.Sprintf("/%s/_field_caps?fields=%s", index, fields))
+	resp, err := c.Get(ctx, fmt.Sprintf("/%s/_field_caps?%s", index, url.Values{"fields": {fields}}.Encode()))
 	if err != nil {
 		return nil, err
 	}
