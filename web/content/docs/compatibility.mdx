@@ -25,3 +25,21 @@ Dependabot is configured to propose weekly Go, npm, and GitHub Actions updates. 
 Run `go list -m -u all` from `cli-go/` and `pnpm outdated` from `web/` to check newer releases. Commit `go.mod` with `go.sum`, and `package.json` with `pnpm-lock.yaml`. Keep `fumadocs-core` and the `fumadocs-ui` alias to `@fumadocs/base-ui` on matching versions.
 
 The website's static search uses Fumadocs' default search engine. After building, run `pnpm test:search` to verify that the exported index can be loaded and queried by the installed client.
+
+## Node tooling verification (25 October 2026)
+
+The Node 26 update affects the private documentation site, not the Go CLI's
+runtime requirements. The existing `.nvmrc`, package engines, and CI agree on
+Node 26.12.1; pnpm is pinned to 12.15.0. TypeScript 7.0.2 works directly with
+this site's current Next.js and Fumadocs tooling, so no compatibility compiler
+is installed. The current security configuration and bounded dependency
+security overrides are preserved.
+
+Frozen installation, peer checks, typecheck, Cloudflare static export, and
+search-index/client checks pass. A real browser opens the exported home page,
+searches for installation, and follows a result to the rendered installation
+page. Wrangler's deployment dry-run packages 276
+static files. Full and production dependency audits report zero known
+advisories, and `pnpm outdated` reports no direct dependency updates. These
+checks do not establish a CLI runtime speedup or a full application security
+audit. Go source and binary release versions are unchanged.
