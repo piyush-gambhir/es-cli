@@ -6,14 +6,11 @@ import (
 	"net/http"
 )
 
-// Response wraps an http.Response with convenience methods.
 type Response struct {
 	HTTPResponse *http.Response
 	RequestURL   string
 }
 
-// JSON reads the response body and unmarshals it into v.
-// It also checks for error status codes.
 func (r *Response) JSON(v interface{}) error {
 	defer r.HTTPResponse.Body.Close()
 
@@ -40,8 +37,6 @@ func (r *Response) JSON(v interface{}) error {
 	return nil
 }
 
-// Error checks if the response indicates an error and returns an APIError.
-// It always closes the response body to prevent leaks.
 func (r *Response) Error() error {
 	defer r.HTTPResponse.Body.Close()
 
@@ -64,21 +59,16 @@ func (r *Response) Error() error {
 	return nil
 }
 
-// StatusCode returns the HTTP status code.
 func (r *Response) StatusCode() int {
 	return r.HTTPResponse.StatusCode
 }
 
-// RawBody reads and returns the raw response body.
 func (r *Response) RawBody() ([]byte, error) {
 	defer r.HTTPResponse.Body.Close()
 	return readAllLimited(r.HTTPResponse.Body)
 }
 
-// extractErrorMessage attempts to extract a meaningful error message from
-// an Elasticsearch error response body.
 func extractErrorMessage(body []byte) string {
-	// Elasticsearch errors typically have: {"error":{"type":"...","reason":"..."},...}
 	var esErr struct {
 		Error struct {
 			Type   string `json:"type"`
@@ -93,7 +83,6 @@ func extractErrorMessage(body []byte) string {
 		return esErr.Error.Reason
 	}
 
-	// Try simple string error: {"error":"..."}
 	var simpleErr struct {
 		Error  string `json:"error"`
 		Reason string `json:"reason"`
@@ -107,7 +96,6 @@ func extractErrorMessage(body []byte) string {
 		}
 	}
 
-	// Try message field: {"message":"..."}
 	var msgErr struct {
 		Message string `json:"message"`
 	}
@@ -115,7 +103,6 @@ func extractErrorMessage(body []byte) string {
 		return msgErr.Message
 	}
 
-	// Fall back to raw body.
 	msg := string(body)
 	if len(msg) > 200 {
 		msg = msg[:200] + "..."

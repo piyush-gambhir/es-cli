@@ -10,7 +10,6 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// ReadInput reads data from a file path or stdin (if path is "-").
 func ReadInput(path string) ([]byte, error) {
 	if path == "-" {
 		data, err := io.ReadAll(os.Stdin)
@@ -27,8 +26,6 @@ func ReadInput(path string) ([]byte, error) {
 	return data, nil
 }
 
-// UnmarshalInput reads from the given path and unmarshals into v.
-// Automatically detects JSON vs YAML based on content.
 func UnmarshalInput(path string, v interface{}) error {
 	data, err := ReadInput(path)
 	if err != nil {

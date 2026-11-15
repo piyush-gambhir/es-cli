@@ -42,19 +42,14 @@ var (
 	flagVerbose  bool
 )
 
-// OutputFormat is set during PersistentPreRunE and exported for use by main.go.
 var OutputFormat string
 
-// Test seams for the update notifier.
 var (
 	stderrIsTerminal = func() bool { return term.IsTerminal(int(os.Stderr.Fd())) }
 	startUpdateCheck = update.StartCheck
 )
 
-// Execute is the main entry point for the CLI.
 func Execute() error {
-	// A Windows `es update` renames the running es.exe to es.exe.old; delete
-	// it on the next start.
 	if runtime.GOOS == "windows" {
 		if exe, err := update.ExecutablePath(); err == nil {
 			update.RemoveOldExecutable(exe)
@@ -63,7 +58,6 @@ func Execute() error {
 	return newRootCmd().Execute()
 }
 
-// commandNames lists the names on cmd's path below the root.
 func commandNames(cmd *cobra.Command) []string {
 	var names []string
 	for c := cmd; c != nil && c.HasParent(); c = c.Parent() {
@@ -72,14 +66,12 @@ func commandNames(cmd *cobra.Command) []string {
 	return names
 }
 
-// loadAndResolveConfig loads the config file and resolves auth from flags/env/config.
 func loadAndResolveConfig(cmd *cobra.Command) (*config.ResolvedConfig, *config.Config, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, nil, fmt.Errorf("loading config: %w", err)
 	}
 
-	// Determine which profile to use.
 	profileName := flagProfile
 	if profileName == "" {
 		profileName = cfg.CurrentProfile
@@ -95,13 +87,11 @@ func loadAndResolveConfig(cmd *cobra.Command) (*config.ResolvedConfig, *config.C
 		}
 	}
 
-	// Determine output format.
 	output := flagOutput
 	if output == "" {
 		output = cfg.Defaults.Output
 	}
 
-	// Resolve configuration.
 	resolved := config.Resolve(flagURL, flagUsername, flagPassword, flagAPIKeyID, flagAPIKey, flagToken, flagCACert, flagInsecure, profile, cfg.Defaults)
 	if cmd.Flags().Changed("insecure") {
 		resolved.Insecure = flagInsecure
@@ -118,7 +108,6 @@ func envFlagEnabled(name string) bool {
 	return strings.EqualFold(v, "true") || v == "1"
 }
 
-// createClient sets up the HTTP client factory on the factory.
 func createClient(f *cmdutil.Factory, resolved *config.ResolvedConfig) {
 	f.Client = func() (*client.Client, error) {
 		c, err := client.NewClient(resolved)
@@ -132,14 +121,12 @@ func createClient(f *cmdutil.Factory, resolved *config.ResolvedConfig) {
 	}
 }
 
-// checkPermissions enforces read-only and no-input checks.
 func checkPermissions(cmd *cobra.Command, resolved *config.ResolvedConfig) error {
-	effectiveReadOnly := resolved.ReadOnly // from env > config
+	effectiveReadOnly := resolved.ReadOnly
 	if flagReadOnly {
 		effectiveReadOnly = true
 	}
 	if effectiveReadOnly && cmd.Annotations != nil && cmd.Annotations["mutates"] == "true" {
-		// Commands that read unless a writing flag is given stay usable in read-only mode.
 		if flag := cmd.Annotations["mutates-when-flag"]; flag != "" && !cmd.Flags().Changed(flag) {
 			return nil
 		}
@@ -153,7 +140,6 @@ func newRootCmd() *cobra.Command {
 		IOStreams: cmdutil.DefaultIOStreams(),
 	}
 
-	// Started in PersistentPreRunE, reported in PersistentPostRun.
 	var updateCheck *update.Check
 
 	rootCmd := &cobra.Command{
@@ -166,7 +152,6 @@ Claude Code skill: https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// Check env vars for --no-input, --quiet, --verbose.
 			if envFlagEnabled("ES_NO_INPUT") {
 				flagNoInput = true
 			}
@@ -180,8 +165,6 @@ Claude Code skill: https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md`,
 			f.Quiet = flagQuiet
 			f.Verbose = flagVerbose
 
-			// Start the background update check unless this invocation must
-			// stay quiet (see update.ShouldCheck).
 			if update.ShouldCheck(update.NotifierOptions{
 				Version:          build.Version,
 				Commands:         commandNames(cmd),
@@ -192,12 +175,10 @@ Claude Code skill: https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md`,
 				updateCheck = startUpdateCheck(build.Version, config.ConfigDir())
 			}
 
-			// Skip auth setup for commands that don't need it.
 			cmdName := cmd.Name()
 			if cmdName == "version" || cmdName == "completion" || cmdName == "help" || cmdName == "update" {
 				return nil
 			}
-			// Also skip for config subcommands.
 			if cmd.Parent() != nil && cmd.Parent().Name() == "config" {
 				return nil
 			}
@@ -207,7 +188,6 @@ Claude Code skill: https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md`,
 				return err
 			}
 
-			// Set exported OutputFormat for use by main.go error handler.
 			OutputFormat = resolved.Output
 
 			f.Resolved = resolved
@@ -224,13 +204,11 @@ Claude Code skill: https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md`,
 			if updateCheck == nil {
 				return
 			}
-			// Waits at most a second, and only for a check this run started.
 			exe, _ := executablePath()
 			updateCheck.Notify(f.IOStreams.ErrOut, installMethodOf(exe))
 		},
 	}
 
-	// Global persistent flags.
 	rootCmd.PersistentFlags().StringVarP(&flagOutput, "output", "o", "", "Output format: table, json, yaml")
 	rootCmd.PersistentFlags().StringVar(&flagProfile, "profile", "", "Configuration profile to use")
 	rootCmd.PersistentFlags().StringVar(&flagURL, "url", "", "Elasticsearch URL")
@@ -246,7 +224,6 @@ Claude Code skill: https://github.com/piyush-gambhir/es-cli/blob/main/SKILL.md`,
 	rootCmd.PersistentFlags().BoolVarP(&flagQuiet, "quiet", "q", false, "Suppress informational output")
 	rootCmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "Enable verbose HTTP logging")
 
-	// Register subcommands.
 	rootCmd.AddCommand(newCommandsCmd())
 	rootCmd.AddCommand(newVersionCmd())
 	rootCmd.AddCommand(newUpdateCmd())

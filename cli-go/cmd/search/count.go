@@ -52,7 +52,6 @@ Examples:
 			}
 			_ = json.Unmarshal(result, &countResult)
 
-			// Wrap in a slice so the table formatter iterates once (not per-byte).
 			return output.Print(f.IOStreams.Out, f.Resolved.Output, []json.RawMessage{result}, &output.TableDef{
 				Headers: []string{"Count"},
 				RowFunc: func(item interface{}) []string {

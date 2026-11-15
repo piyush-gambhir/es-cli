@@ -4,7 +4,6 @@ import (
 	"context"
 )
 
-// CatShard represents a shard from _cat/shards.
 type CatShard struct {
 	Index  string `json:"index"`
 	Shard  string `json:"shard"`
@@ -16,7 +15,6 @@ type CatShard struct {
 	Node   string `json:"node"`
 }
 
-// ListShards returns shards from _cat/shards.
 func (c *Client) ListShards(ctx context.Context, index string) ([]CatShard, error) {
 	path := "/_cat/shards?format=json&h=index,shard,prirep,state,docs,store,ip,node"
 	if index != "" {

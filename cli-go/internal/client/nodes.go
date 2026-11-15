@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 )
 
-// CatNode represents a node from _cat/nodes.
 type CatNode struct {
 	IP          string `json:"ip"`
 	HeapPercent string `json:"heap.percent"`
@@ -19,7 +18,6 @@ type CatNode struct {
 	Name        string `json:"name"`
 }
 
-// ListNodes returns nodes from _cat/nodes.
 func (c *Client) ListNodes(ctx context.Context) ([]CatNode, error) {
 	resp, err := c.Get(ctx, "/_cat/nodes?format=json&h=ip,heap.percent,ram.percent,cpu,load_1m,load_5m,load_15m,node.role,master,name")
 	if err != nil {
@@ -32,7 +30,6 @@ func (c *Client) ListNodes(ctx context.Context) ([]CatNode, error) {
 	return nodes, nil
 }
 
-// GetNodeInfo returns detailed information about a specific node.
 func (c *Client) GetNodeInfo(ctx context.Context, nodeID string) (json.RawMessage, error) {
 	resp, err := c.Get(ctx, "/_nodes/"+nodeID)
 	if err != nil {
@@ -45,7 +42,6 @@ func (c *Client) GetNodeInfo(ctx context.Context, nodeID string) (json.RawMessag
 	return result, nil
 }
 
-// GetNodeStats returns statistics for nodes.
 func (c *Client) GetNodeStats(ctx context.Context, nodeID, metric string) (json.RawMessage, error) {
 	path := "/_nodes"
 	if nodeID != "" {
@@ -66,7 +62,6 @@ func (c *Client) GetNodeStats(ctx context.Context, nodeID, metric string) (json.
 	return result, nil
 }
 
-// GetHotThreads returns hot threads information. Returns plain text.
 func (c *Client) GetHotThreads(ctx context.Context, nodeID string) (string, error) {
 	path := "/_nodes"
 	if nodeID != "" {

@@ -20,25 +20,17 @@ import (
 	"time"
 )
 
-// InstallMethod says how the running binary was installed.
 type InstallMethod string
 
 const (
-	// InstallSelf is a release binary that `es update` replaces in place.
 	InstallSelf InstallMethod = "self"
-	// InstallGo is a binary in a Go bin directory, built from source.
-	InstallGo InstallMethod = "go"
+	InstallGo   InstallMethod = "go"
 )
 
-// goUpdateCommand updates a source build. The main package lives in cli-go/,
-// so `go install <module>@latest` would install a binary named cli-go rather
-// than es; the documented source install is `make install` from a clone.
 const goUpdateCommand = "git pull && make install (in your es-cli/cli-go checkout)"
 
-// maxReleaseArtifactBytes caps every download and the extracted binary.
 const maxReleaseArtifactBytes int64 = 256 << 20
 
-// UpdateCommand is the command the notice tells the user to run.
 func UpdateCommand(method InstallMethod) string {
 	if method == InstallGo {
 		return goUpdateCommand
@@ -46,8 +38,6 @@ func UpdateCommand(method InstallMethod) string {
 	return binaryName + " update"
 }
 
-// DetectInstallMethod reports InstallGo when exePath is in $GOBIN,
-// $GOPATH/bin, or ~/go/bin, and InstallSelf otherwise.
 func DetectInstallMethod(exePath string, getenv func(string) string, homeDir string) InstallMethod {
 	var goBins []string
 	if gobin := getenv("GOBIN"); gobin != "" {
@@ -61,7 +51,6 @@ func DetectInstallMethod(exePath string, getenv func(string) string, homeDir str
 	if homeDir != "" {
 		goBins = append(goBins, filepath.Join(homeDir, "go", "bin"))
 	}
-	// os.SameFile follows symlinks and matches the filesystem's own case rules.
 	exeDir, err := os.Stat(filepath.Dir(exePath))
 	if err != nil {
 		return InstallSelf
@@ -74,7 +63,6 @@ func DetectInstallMethod(exePath string, getenv func(string) string, homeDir str
 	return InstallSelf
 }
 
-// ExecutablePath is the resolved path of the running binary.
 func ExecutablePath() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {
@@ -87,13 +75,10 @@ func ExecutablePath() (string, error) {
 	return resolved, nil
 }
 
-// RemoveOldExecutable deletes the es.exe.old a Windows update leaves behind
-// (a running binary can be renamed but not deleted). Best effort.
 func RemoveOldExecutable(exePath string) {
 	_ = os.Remove(exePath + ".old")
 }
 
-// Installer downloads a release for GOOS/GOARCH and replaces ExePath with it.
 type Installer struct {
 	GOOS     string
 	GOARCH   string
@@ -101,8 +86,6 @@ type Installer struct {
 	Progress io.Writer
 }
 
-// ArchiveName is the GoReleaser archive for a platform
-// ("{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}", zip on Windows).
 func ArchiveName(goos, goarch string) string {
 	ext := ".tar.gz"
 	if goos == "windows" {
@@ -118,8 +101,6 @@ func executableName(goos string) string {
 	return binaryName
 }
 
-// Install replaces the executable with release version. On any failure the
-// existing binary is left in place and working.
 func (in *Installer) Install(ctx context.Context, version string) error {
 	progress := in.Progress
 	if progress == nil {
@@ -163,8 +144,6 @@ func (in *Installer) Install(ctx context.Context, version string) error {
 	return nil
 }
 
-// checkWritable fails early, before any download, when the binary's directory
-// cannot take the new file.
 func checkWritable(goos, dir string) error {
 	f, err := os.CreateTemp(dir, ".es-update-*")
 	if err != nil {
@@ -222,8 +201,6 @@ func copyLimited(dst io.Writer, src io.Reader, limit int64) error {
 	return nil
 }
 
-// verifyChecksum checks the archive against its line in checksums.txt and
-// refuses a mismatch or a missing entry.
 func verifyChecksum(archivePath, archiveName string, checksums []byte) error {
 	var want []byte
 	scanner := bufio.NewScanner(bytes.NewReader(checksums))
@@ -260,10 +237,6 @@ func verifyChecksum(archivePath, archiveName string, checksums []byte) error {
 	return nil
 }
 
-// extractBinary writes only the es binary from the archive to a fixed name in
-// destDir, so no part of an entry name ever reaches the filesystem. It refuses
-// archives with absolute or parent-relative entry names, a binary outside the
-// archive root, or a binary that is not a regular file.
 func extractBinary(archivePath, goos, destDir string) (string, error) {
 	want := executableName(goos)
 	out := filepath.Join(destDir, want)
@@ -273,8 +246,6 @@ func extractBinary(archivePath, goos, destDir string) (string, error) {
 	return out, extractFromTarGz(archivePath, want, out)
 }
 
-// matchEntry reports whether an archive entry is the binary, and rejects
-// unsafe entry names anywhere in the archive.
 func matchEntry(name, want string) (bool, error) {
 	clean := path.Clean(strings.ReplaceAll(name, `\`, "/"))
 	if path.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, "../") || strings.Contains(clean, ":") {
@@ -369,12 +340,6 @@ func writeBinary(out string, src io.Reader) error {
 	return f.Close()
 }
 
-// replaceExecutable swaps newBinary in for exePath. The new file is first
-// written next to the executable so the final step is a same-directory rename.
-//   - macOS/Linux: rename the temp file over the executable (atomic).
-//   - Windows: a running .exe cannot be overwritten but can be renamed, so move
-//     es.exe to es.exe.old, then the new file to es.exe, restoring es.exe if
-//     the second rename fails. RemoveOldExecutable deletes es.exe.old later.
 func replaceExecutable(goos, newBinary, exePath string) error {
 	dir := filepath.Dir(exePath)
 	tmp, err := os.CreateTemp(dir, ".es-update-*")
