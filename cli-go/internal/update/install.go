@@ -24,7 +24,7 @@ type InstallMethod string
 
 const (
 	InstallSelf InstallMethod = "self"
-	InstallGo InstallMethod = "go"
+	InstallGo   InstallMethod = "go"
 )
 
 const goUpdateCommand = "git pull && make install (in your es-cli/cli-go checkout)"

@@ -12,10 +12,10 @@ type Factory struct {
 	Config    func() (*config.Config, error)
 	Client    func() (*client.Client, error)
 	IOStreams IOStreams
-	Resolved *config.ResolvedConfig
-	NoInput bool
-	Quiet bool
-	Verbose bool
+	Resolved  *config.ResolvedConfig
+	NoInput   bool
+	Quiet     bool
+	Verbose   bool
 }
 
 type IOStreams struct {
