@@ -10,7 +10,6 @@ import (
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/output"
 )
 
-// NewCmdShard returns the shard parent command.
 func NewCmdShard(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "shard",

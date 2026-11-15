@@ -12,7 +12,6 @@ import (
 )
 
 func TestCommandsResolve(t *testing.T) {
-	// Invalid config and a forced terminal ensure the resolver bypasses root setup.
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	configDir := filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "es-cli")
 	if err := os.MkdirAll(configDir, 0o700); err != nil {

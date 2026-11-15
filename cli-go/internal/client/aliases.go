@@ -4,7 +4,6 @@ import (
 	"context"
 )
 
-// CatAlias represents an alias from _cat/aliases.
 type CatAlias struct {
 	Alias         string `json:"alias"`
 	Index         string `json:"index"`
@@ -14,9 +13,6 @@ type CatAlias struct {
 	IsWriteIndex  string `json:"is_write_index"`
 }
 
-// ListAliases returns aliases from _cat/aliases, optionally filtered by the
-// index they point at. The _cat/aliases path parameter filters by alias name,
-// not index, so the index filter is applied client-side.
 func (c *Client) ListAliases(ctx context.Context, index string) ([]CatAlias, error) {
 	resp, err := c.Get(ctx, "/_cat/aliases?format=json")
 	if err != nil {
@@ -38,7 +34,6 @@ func (c *Client) ListAliases(ctx context.Context, index string) ([]CatAlias, err
 	return aliases, nil
 }
 
-// CreateAlias creates an alias for an index.
 func (c *Client) CreateAlias(ctx context.Context, index, alias string) error {
 	body := map[string]interface{}{
 		"actions": []map[string]interface{}{
@@ -57,7 +52,6 @@ func (c *Client) CreateAlias(ctx context.Context, index, alias string) error {
 	return resp.Error()
 }
 
-// DeleteAlias removes an alias from an index.
 func (c *Client) DeleteAlias(ctx context.Context, index, alias string) error {
 	body := map[string]interface{}{
 		"actions": []map[string]interface{}{

@@ -62,7 +62,6 @@ Examples:
 
 	cmdutil.AddFileFlag(cmd, &file)
 
-	// Writes only with -f/--file; without it this is a read and runs in read-only mode.
 	cmd.Annotations = map[string]string{"mutates": "true", "mutates-when-flag": "file"}
 
 	return cmd

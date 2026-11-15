@@ -9,7 +9,6 @@ import (
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/cmdutil"
 )
 
-// NewCmdIndex returns the index parent command.
 func NewCmdIndex(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "index",

@@ -8,7 +8,6 @@ import (
 	"net/url"
 )
 
-// GetDocument retrieves a single document by index and ID.
 func (c *Client) GetDocument(ctx context.Context, index, id string) (json.RawMessage, error) {
 	resp, err := c.Get(ctx, fmt.Sprintf("/%s/_doc/%s", index, url.PathEscape(id)))
 	if err != nil {
@@ -21,8 +20,6 @@ func (c *Client) GetDocument(ctx context.Context, index, id string) (json.RawMes
 	return result, nil
 }
 
-// IndexDocument indexes a document. If id is empty, a POST is used to auto-generate an ID.
-// If id is provided, a PUT is used to index with the given ID.
 func (c *Client) IndexDocument(ctx context.Context, index string, id string, body interface{}) (json.RawMessage, error) {
 	var resp *Response
 	var err error
@@ -41,7 +38,6 @@ func (c *Client) IndexDocument(ctx context.Context, index string, id string, bod
 	return result, nil
 }
 
-// DeleteDocument deletes a document by index and ID.
 func (c *Client) DeleteDocument(ctx context.Context, index, id string) error {
 	resp, err := c.Delete(ctx, fmt.Sprintf("/%s/_doc/%s", index, url.PathEscape(id)))
 	if err != nil {
@@ -50,8 +46,6 @@ func (c *Client) DeleteDocument(ctx context.Context, index, id string) error {
 	return resp.Error()
 }
 
-// BulkIndex sends a bulk indexing request with NDJSON body.
-// If index is provided, the path is /<index>/_bulk, otherwise /_bulk.
 func (c *Client) BulkIndex(ctx context.Context, index string, body io.Reader) (json.RawMessage, error) {
 	path := "/_bulk"
 	if index != "" {
@@ -94,7 +88,6 @@ func (c *Client) BulkIndex(ctx context.Context, index string, body io.Reader) (j
 	return result, nil
 }
 
-// MultiGet retrieves multiple documents in a single request.
 func (c *Client) MultiGet(ctx context.Context, index string, body interface{}) (json.RawMessage, error) {
 	resp, err := c.Post(ctx, fmt.Sprintf("/%s/_mget", index), body)
 	if err != nil {

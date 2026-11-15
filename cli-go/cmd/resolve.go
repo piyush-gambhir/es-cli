@@ -9,7 +9,6 @@ import (
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/output"
 )
 
-// resolution describes arguments using the parser without executing their command.
 type resolution struct {
 	Command     string            `json:"command"`
 	Effect      string            `json:"effect"`
@@ -27,7 +26,6 @@ func newCommandsCmd() *cobra.Command {
 		Short:              "Show the command, effect and flags that arguments would run, without running them",
 		Example:            "  es commands resolve -- cluster health\n  es commands resolve -- -o json index delete my-index --confirm",
 		DisableFlagParsing: true,
-		// Override the root hook to avoid config, credentials and update checks.
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			OutputFormat = "json"
 			return nil
@@ -61,7 +59,6 @@ func resolveCommand(target *cobra.Command) resolution {
 	ann := target.Annotations
 	flagSet := func(name string) bool { return name != "" && target.Flags().Changed(name) }
 	switch {
-	// Checked first: these commands also carry mutates=true but write only with the flag.
 	case ann["mutates-when-flag"] != "":
 		if flagSet(ann["mutates-when-flag"]) {
 			res.Effect = "remote_write"

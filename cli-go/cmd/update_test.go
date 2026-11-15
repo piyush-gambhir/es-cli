@@ -17,14 +17,12 @@ import (
 
 type updateStub struct {
 	checks     int
-	installs   []string // versions passed to installRelease
+	installs   []string
 	installErr error
 	exe        string
 	configDir  string
 }
 
-// stubUpdate runs es as release v0.1.9 with v0.2.0 (or latest) on GitHub,
-// without the network, the real executable, or a terminal.
 func stubUpdate(t *testing.T, latest string) *updateStub {
 	t.Helper()
 	s := &updateStub{}
@@ -165,8 +163,6 @@ func TestUpdateYesInstallsAndKeepsCache(t *testing.T) {
 			t.Errorf("output missing %q:\n%s", want, out)
 		}
 	}
-	// The cache holds the installed release, so the notifier stays quiet and
-	// es version agrees with es update.
 	if data, err := os.ReadFile(cache); err != nil || !strings.Contains(string(data), `"latest_version":"0.2.0"`) {
 		t.Fatalf("update cache after a successful update = %q, %v", data, err)
 	}
@@ -281,8 +277,6 @@ func TestVersionShowsCachedLatestOnly(t *testing.T) {
 	}
 }
 
-// The notifier must not even start (no network, no output) unless the
-// invocation is an interactive release build with no opt-out.
 func TestNotifierSuppression(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -323,7 +317,6 @@ func TestNotifierSuppression(t *testing.T) {
 	}
 }
 
-// discardStdout hides output that commands write straight to os.Stdout.
 func discardStdout(t *testing.T) {
 	devNull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
 	if err != nil {

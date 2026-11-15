@@ -8,10 +8,9 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// Profile holds connection settings for an Elasticsearch cluster.
 type Profile struct {
 	URL        string `yaml:"url,omitempty"`
-	AuthMethod string `yaml:"auth_method,omitempty"` // basic, api_key, bearer, or "" (auto-detect)
+	AuthMethod string `yaml:"auth_method,omitempty"`
 	Username   string `yaml:"username,omitempty"`
 	Password   string `yaml:"password,omitempty"`
 	APIKeyID   string `yaml:"api_key_id,omitempty"`
@@ -22,25 +21,20 @@ type Profile struct {
 	ReadOnly   bool   `yaml:"read_only,omitempty"`
 }
 
-// Defaults holds default output preferences.
 type Defaults struct {
 	Output string `yaml:"output,omitempty"`
 }
 
-// Config is the top-level configuration structure.
 type Config struct {
 	CurrentProfile string             `yaml:"current_profile,omitempty"`
 	Profiles       map[string]Profile `yaml:"profiles,omitempty"`
 	Defaults       Defaults           `yaml:"defaults,omitempty"`
 }
 
-// Load reads the config from the default config file path.
-// If the file does not exist, an empty Config is returned.
 func Load() (*Config, error) {
 	return LoadFrom(ConfigFilePath())
 }
 
-// LoadFrom reads the config from the given path.
 func LoadFrom(path string) (*Config, error) {
 	cfg := &Config{
 		Profiles: make(map[string]Profile),
@@ -69,12 +63,10 @@ func LoadFrom(path string) (*Config, error) {
 	return cfg, nil
 }
 
-// Save writes the config to the default config file path.
 func (c *Config) Save() error {
 	return c.SaveTo(ConfigFilePath())
 }
 
-// SaveTo writes the config to the given path, creating directories as needed.
 func (c *Config) SaveTo(path string) error {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
@@ -99,7 +91,6 @@ func (c *Config) SaveTo(path string) error {
 	return nil
 }
 
-// CurrentProfileConfig returns the profile for the current profile name.
 func (c *Config) CurrentProfileConfig() *Profile {
 	if c.CurrentProfile == "" {
 		return nil
@@ -111,7 +102,6 @@ func (c *Config) CurrentProfileConfig() *Profile {
 	return &p
 }
 
-// CreateProfile adds a new profile to the config. Returns an error if it already exists.
 func (c *Config) CreateProfile(name string, profile Profile) error {
 	if _, exists := c.Profiles[name]; exists {
 		return fmt.Errorf("profile %q already exists", name)
@@ -120,7 +110,6 @@ func (c *Config) CreateProfile(name string, profile Profile) error {
 	return nil
 }
 
-// DeleteProfile removes a profile from the config. If it was the current profile, unsets it.
 func (c *Config) DeleteProfile(name string) error {
 	if _, exists := c.Profiles[name]; !exists {
 		return fmt.Errorf("profile %q not found", name)
@@ -132,7 +121,6 @@ func (c *Config) DeleteProfile(name string) error {
 	return nil
 }
 
-// SetCurrentProfile sets the active profile name.
 func (c *Config) SetCurrentProfile(name string) error {
 	if _, exists := c.Profiles[name]; !exists {
 		return fmt.Errorf("profile %q not found", name)

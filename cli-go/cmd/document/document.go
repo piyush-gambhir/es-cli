@@ -6,7 +6,6 @@ import (
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/cmdutil"
 )
 
-// NewCmdDocument returns the document parent command.
 func NewCmdDocument(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "document",

@@ -6,7 +6,6 @@ import (
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/cmdutil"
 )
 
-// NewCmdAlias returns the alias parent command.
 func NewCmdAlias(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "alias",

@@ -70,7 +70,6 @@ Examples:
 
 	cmd.Flags().StringArrayVar(&set, "set", nil, "Set a setting as key=value (repeatable)")
 
-	// Writes only with --set; without it this is a read and runs in read-only mode.
 	cmd.Annotations = map[string]string{"mutates": "true", "mutates-when-flag": "set"}
 
 	return cmd

@@ -6,7 +6,6 @@ import (
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/cmdutil"
 )
 
-// NewCmdSearch returns the search parent command.
 func NewCmdSearch(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "search",

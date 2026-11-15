@@ -9,9 +9,6 @@ import (
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/config"
 )
 
-// expectedMutatingPaths is the authoritative list of commands that must carry
-// the Annotations["mutates"] = "true" annotation. If you add a new write
-// command, add its full command path here; the test will fail until you do.
 var expectedMutatingPaths = []string{
 	"es update",
 	"es config set",
@@ -39,8 +36,6 @@ var expectedMutatingPaths = []string{
 	"es ilm delete",
 }
 
-// collectCommands walks the command tree and returns every leaf and branch
-// command (excluding the root itself).
 func collectCommands(root *cobra.Command) []*cobra.Command {
 	var all []*cobra.Command
 	var walk func(cmd *cobra.Command)
@@ -57,13 +52,11 @@ func collectCommands(root *cobra.Command) []*cobra.Command {
 func TestMutatingAnnotations(t *testing.T) {
 	root := newRootCmd()
 
-	// Build a set of expected mutating paths for fast lookup.
 	expectedSet := make(map[string]bool, len(expectedMutatingPaths))
 	for _, p := range expectedMutatingPaths {
 		expectedSet[p] = true
 	}
 
-	// Walk the command tree and partition into found-mutating and found-non-mutating.
 	foundMutating := make(map[string]bool)
 
 	for _, cmd := range collectCommands(root) {
@@ -73,7 +66,6 @@ func TestMutatingAnnotations(t *testing.T) {
 		}
 	}
 
-	// 1. Every expected mutating command must actually have the annotation.
 	var missing []string
 	for _, p := range expectedMutatingPaths {
 		if !foundMutating[p] {
@@ -88,7 +80,6 @@ func TestMutatingAnnotations(t *testing.T) {
 		}
 	}
 
-	// 2. No unexpected commands should have the annotation.
 	var unexpected []string
 	for p := range foundMutating {
 		if !expectedSet[p] {
@@ -103,7 +94,6 @@ func TestMutatingAnnotations(t *testing.T) {
 		}
 	}
 
-	// 3. Spot-check that known read-only commands do NOT have the annotation.
 	readOnlyPaths := []string{
 		"es index list",
 		"es index get",
@@ -137,8 +127,6 @@ func TestMutatingAnnotations(t *testing.T) {
 	}
 }
 
-// index settings and index mappings read unless --set / --file is given, so their
-// read forms must run in read-only mode while the write forms stay blocked.
 func TestConditionalWritesInReadOnlyMode(t *testing.T) {
 	resolved := &config.ResolvedConfig{ReadOnly: true}
 	for _, tc := range []struct {
