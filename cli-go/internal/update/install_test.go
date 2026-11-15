@@ -158,8 +158,6 @@ func TestExtractBinaryRefusesUnsafeArchives(t *testing.T) {
 	}
 }
 
-// releaseServer serves a release archive and checksums.txt for v0.2.0 and
-// points downloadBaseURL at it.
 func releaseServer(t *testing.T, archiveName string, archive []byte, checksums string) *atomic.Int32 {
 	t.Helper()
 	var hits atomic.Int32
@@ -186,7 +184,6 @@ func checksumLine(name string, data []byte) string {
 	return fmt.Sprintf("%x  %s\n", sha256.Sum256(data), name)
 }
 
-// installedExe creates a fake installed binary and returns its path.
 func installedExe(t *testing.T, name string) string {
 	t.Helper()
 	exe := filepath.Join(t.TempDir(), name)
@@ -272,7 +269,6 @@ func TestInstallFailsEarlyWhenDirectoryNotWritable(t *testing.T) {
 
 func TestReplaceExecutableWindowsRenamesAside(t *testing.T) {
 	exe := installedExe(t, "es.exe")
-	// A leftover from an earlier update must not block this one.
 	if err := os.WriteFile(exe+".old", []byte("older binary"), 0o755); err != nil {
 		t.Fatal(err)
 	}

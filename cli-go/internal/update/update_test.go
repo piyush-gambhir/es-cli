@@ -13,7 +13,6 @@ import (
 	"time"
 )
 
-// fakeClock pins now() for the test and returns a function that moves it.
 func fakeClock(t *testing.T) func(time.Duration) {
 	t.Helper()
 	current := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
@@ -23,7 +22,6 @@ func fakeClock(t *testing.T) func(time.Duration) {
 	return func(d time.Duration) { current = current.Add(d) }
 }
 
-// useServer points downloadBaseURL (github.com) at srv for the test.
 func useServer(t *testing.T, srv *httptest.Server) {
 	t.Helper()
 	t.Cleanup(srv.Close)
@@ -32,9 +30,6 @@ func useServer(t *testing.T, srv *httptest.Server) {
 	t.Cleanup(func() { downloadBaseURL = orig })
 }
 
-// latestServer answers github.com/<repo>/releases/latest like GitHub: a 302 to
-// the release tag page for *tag. It counts requests and fails the test if the
-// redirect is followed. An empty tag answers HTTP 500.
 func latestServer(t *testing.T, tag *string) *atomic.Int32 {
 	t.Helper()
 	var hits atomic.Int32
@@ -134,7 +129,6 @@ func TestNoticeShownOncePerVersionPerDay(t *testing.T) {
 		t.Fatalf("GitHub hit %d times within the cache window, want 1", n)
 	}
 
-	// A newer release is announced even inside the 24h window.
 	entry := loadCache(dir)
 	entry.LatestVersion = "0.2.1"
 	saveCache(dir, entry)
@@ -142,7 +136,6 @@ func TestNoticeShownOncePerVersionPerDay(t *testing.T) {
 		t.Fatalf("new version within 24h not announced: %q", got)
 	}
 
-	// After 24h the cache expires, GitHub is asked again, and the notice repeats.
 	advance(25 * time.Hour)
 	if got := runCheck(t, "0.1.9", dir, InstallSelf); !strings.Contains(got, "v0.1.9 -> v0.2.0") {
 		t.Fatalf("notice not repeated after 24h: %q", got)
@@ -188,8 +181,6 @@ func TestFailedCheckIsCached(t *testing.T) {
 	}
 }
 
-// slowServer answers releases/latest with v0.2.0 after delay, or when the
-// test ends, whichever comes first, and counts requests.
 func slowServer(t *testing.T, delay time.Duration) *atomic.Int32 {
 	t.Helper()
 	var hits atomic.Int32
@@ -203,12 +194,10 @@ func slowServer(t *testing.T, delay time.Duration) *atomic.Int32 {
 		http.Redirect(w, r, "/"+Repo+"/releases/tag/v0.2.0", http.StatusFound)
 	}))
 	useServer(t, srv)
-	t.Cleanup(func() { close(stop) }) // runs before srv.Close, which waits for handlers
+	t.Cleanup(func() { close(stop) })
 	return &hits
 }
 
-// A command that finishes before GitHub answers still shows the notice on the
-// same run when the answer arrives within noticeWait.
 func TestNotifyWaitsForCheckStartedThisRun(t *testing.T) {
 	fakeClock(t)
 	slowServer(t, 200*time.Millisecond)
@@ -221,8 +210,6 @@ func TestNotifyWaitsForCheckStartedThisRun(t *testing.T) {
 	}
 }
 
-// A check slower than noticeWait delays the command by at most noticeWait,
-// and the next run neither asks GitHub again nor waits.
 func TestNotifyWaitIsBounded(t *testing.T) {
 	advance := fakeClock(t)
 	hits := slowServer(t, 10*time.Second)
@@ -270,14 +257,12 @@ func TestCheckNowBypassesCache(t *testing.T) {
 	}
 }
 
-// FetchLatest reads the tag from the releases/latest redirect without
-// following it, and treats anything but a same-host v-semver tag as a failure.
 func TestFetchLatestFromRedirect(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
-		location string // "" sends a 302 with no Location; "{srv}" is the server URL
+		location string
 		status   int
-		want     string // version, or "" for an error
+		want     string
 	}{
 		{"good tag", "{srv}/" + Repo + "/releases/tag/v0.2.0", http.StatusFound, "0.2.0"},
 		{"relative location", "/" + Repo + "/releases/tag/v1.2.3", http.StatusFound, "1.2.3"},
@@ -348,8 +333,6 @@ func TestDetectInstallMethod(t *testing.T) {
 		}
 	}
 
-	// On a case-sensitive filesystem home/Go/bin is a different directory from
-	// home/go/bin and must not count as a Go bin directory.
 	goBin, _ := os.Stat(dirs["home/go/bin"])
 	upper, _ := os.Stat(dirs["home/Go/bin"])
 	if !os.SameFile(goBin, upper) {

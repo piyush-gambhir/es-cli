@@ -6,7 +6,6 @@ import (
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/cmdutil"
 )
 
-// NewCmdNode returns the node parent command.
 func NewCmdNode(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "node",

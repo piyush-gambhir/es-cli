@@ -57,8 +57,6 @@ Examples:
 				body["from"] = from
 			}
 			if sort != "" {
-				// Parse "field:order" into ES sort format: [{"field": {"order": "order"}}]
-				// Supports multiple sorts comma-separated: "price:asc,year:desc"
 				var sortArr []interface{}
 				for _, s := range strings.Split(sort, ",") {
 					s = strings.TrimSpace(s)

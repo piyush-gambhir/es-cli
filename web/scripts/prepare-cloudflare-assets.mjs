@@ -15,9 +15,6 @@ await rm(destinationRoot, { recursive: true, force: true });
 await mkdir(destination, { recursive: true });
 await cp(source, destination, { recursive: true });
 
-// Wrangler only reads _redirects from the assets root (a nested copy would be
-// served as a public file), and the site lives under /<sitePath>. Move the file
-// up and prefix both sides of every site-relative rule.
 const nestedRedirects = path.join(destination, "_redirects");
 const redirects = await readFile(nestedRedirects, "utf8").catch((error) => {
   if (error.code === "ENOENT") return null;

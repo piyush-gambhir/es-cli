@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 )
 
-// ClusterHealth represents the Elasticsearch cluster health response.
 type ClusterHealth struct {
 	ClusterName                 string  `json:"cluster_name"`
 	Status                      string  `json:"status"`
@@ -24,7 +23,6 @@ type ClusterHealth struct {
 	ActiveShardsPercentAsNumber float64 `json:"active_shards_percent_as_number"`
 }
 
-// ClusterInfo represents the response from GET / (cluster root).
 type ClusterInfo struct {
 	Name        string `json:"name"`
 	ClusterName string `json:"cluster_name"`
@@ -35,7 +33,6 @@ type ClusterInfo struct {
 	Tagline string `json:"tagline"`
 }
 
-// GetClusterHealth returns the cluster health status.
 func (c *Client) GetClusterHealth(ctx context.Context) (*ClusterHealth, error) {
 	resp, err := c.Get(ctx, "/_cluster/health")
 	if err != nil {
@@ -48,7 +45,6 @@ func (c *Client) GetClusterHealth(ctx context.Context) (*ClusterHealth, error) {
 	return &health, nil
 }
 
-// GetClusterStats returns the cluster stats.
 func (c *Client) GetClusterStats(ctx context.Context) (json.RawMessage, error) {
 	resp, err := c.Get(ctx, "/_cluster/stats")
 	if err != nil {
@@ -61,7 +57,6 @@ func (c *Client) GetClusterStats(ctx context.Context) (json.RawMessage, error) {
 	return result, nil
 }
 
-// GetClusterSettings returns the cluster settings.
 func (c *Client) GetClusterSettings(ctx context.Context, includeDefaults bool) (json.RawMessage, error) {
 	path := "/_cluster/settings"
 	if includeDefaults {
@@ -78,7 +73,6 @@ func (c *Client) GetClusterSettings(ctx context.Context, includeDefaults bool) (
 	return result, nil
 }
 
-// PendingTask represents a pending cluster task.
 type PendingTask struct {
 	InsertOrder   int    `json:"insert_order"`
 	Priority      string `json:"priority"`
@@ -87,9 +81,6 @@ type PendingTask struct {
 	TimeInQueue   string `json:"time_in_queue"`
 }
 
-// GetPendingTasks returns the list of pending cluster tasks.
-// human=true is required for Elasticsearch to include the human-readable
-// time_in_queue field alongside time_in_queue_millis.
 func (c *Client) GetPendingTasks(ctx context.Context) ([]PendingTask, error) {
 	resp, err := c.Get(ctx, "/_cluster/pending_tasks?human=true")
 	if err != nil {
@@ -104,7 +95,6 @@ func (c *Client) GetPendingTasks(ctx context.Context) ([]PendingTask, error) {
 	return result.Tasks, nil
 }
 
-// AllocationExplain returns the allocation explanation for a shard.
 func (c *Client) AllocationExplain(ctx context.Context, body interface{}) (json.RawMessage, error) {
 	resp, err := c.Post(ctx, "/_cluster/allocation/explain", body)
 	if err != nil {
@@ -117,7 +107,6 @@ func (c *Client) AllocationExplain(ctx context.Context, body interface{}) (json.
 	return result, nil
 }
 
-// GetClusterInfo returns basic cluster information from GET /.
 func (c *Client) GetClusterInfo(ctx context.Context) (*ClusterInfo, error) {
 	resp, err := c.Get(ctx, "/")
 	if err != nil {

@@ -6,7 +6,6 @@ import (
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/cmdutil"
 )
 
-// NewCmdComponentTemplate returns the component_template parent command.
 func NewCmdComponentTemplate(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "component-template",

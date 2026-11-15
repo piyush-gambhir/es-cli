@@ -16,11 +16,10 @@ import (
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/config"
 )
 
-// Client is the Elasticsearch HTTP API client.
 type Client struct {
 	BaseURL    string
 	HTTPClient *http.Client
-	AuthMethod string // basic, api_key, bearer
+	AuthMethod string
 	Username   string
 	Password   string
 	APIKeyID   string
@@ -29,7 +28,6 @@ type Client struct {
 	UserAgent  string
 }
 
-// NewClient creates a new client from a ResolvedConfig.
 func NewClient(rc *config.ResolvedConfig) (*Client, error) {
 	if rc.URL == "" {
 		return nil, fmt.Errorf("elasticsearch URL is required (use --url, ES_URL, or configure a profile)")
@@ -70,28 +68,22 @@ func NewClient(rc *config.ResolvedConfig) (*Client, error) {
 	}, nil
 }
 
-// Get sends a GET request.
 func (c *Client) Get(ctx context.Context, path string) (*Response, error) {
 	return c.do(ctx, http.MethodGet, path, nil)
 }
 
-// Post sends a POST request with a JSON body.
 func (c *Client) Post(ctx context.Context, path string, body interface{}) (*Response, error) {
 	return c.do(ctx, http.MethodPost, path, body)
 }
 
-// Put sends a PUT request with a JSON body.
 func (c *Client) Put(ctx context.Context, path string, body interface{}) (*Response, error) {
 	return c.do(ctx, http.MethodPut, path, body)
 }
 
-// Delete sends a DELETE request.
 func (c *Client) Delete(ctx context.Context, path string) (*Response, error) {
 	return c.do(ctx, http.MethodDelete, path, nil)
 }
 
-// PostRaw sends a POST request with a raw body and custom content type.
-// Used for NDJSON bulk requests and other non-JSON payloads.
 func (c *Client) PostRaw(ctx context.Context, path string, body io.Reader, contentType string) (*Response, error) {
 	url := c.BaseURL + path
 
@@ -146,31 +138,26 @@ func (c *Client) do(ctx context.Context, method, path string, body interface{}) 
 	return &Response{HTTPResponse: resp, RequestURL: url}, nil
 }
 
-// setAuth sets the appropriate authentication header on the request.
 func (c *Client) setAuth(req *http.Request) {
 	switch c.AuthMethod {
 	case "basic":
 		req.SetBasicAuth(c.Username, c.Password)
 	case "api_key":
 		if c.APIKeyID != "" {
-			// ID + secret provided separately — encode them
 			encoded := base64.StdEncoding.EncodeToString([]byte(c.APIKeyID + ":" + c.APIKey))
 			req.Header.Set("Authorization", "ApiKey "+encoded)
 		} else {
-			// Pre-encoded API key (just the secret, already base64)
 			req.Header.Set("Authorization", "ApiKey "+c.APIKey)
 		}
 	case "bearer":
 		req.Header.Set("Authorization", "Bearer "+c.Token)
 	default:
-		// Auto-detect from available credentials.
 		if c.Token != "" {
 			req.Header.Set("Authorization", "Bearer "+c.Token)
 		} else if c.APIKeyID != "" && c.APIKey != "" {
 			encoded := base64.StdEncoding.EncodeToString([]byte(c.APIKeyID + ":" + c.APIKey))
 			req.Header.Set("Authorization", "ApiKey "+encoded)
 		} else if c.APIKey != "" {
-			// Pre-encoded API key without ID
 			req.Header.Set("Authorization", "ApiKey "+c.APIKey)
 		} else if c.Username != "" && c.Password != "" {
 			req.SetBasicAuth(c.Username, c.Password)

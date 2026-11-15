@@ -45,7 +45,6 @@ Examples:
 			err = c.CreateILMPolicy(cmd.Context(), args[0], body)
 			if err != nil {
 				if ifNotExists {
-					// Policy already exists; treat as success.
 					return nil
 				}
 				return err

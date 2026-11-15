@@ -45,7 +45,6 @@ Examples:
 			err = c.CreatePipeline(cmd.Context(), args[0], body)
 			if err != nil {
 				if ifNotExists {
-					// Pipeline already exists; treat as success.
 					return nil
 				}
 				return err

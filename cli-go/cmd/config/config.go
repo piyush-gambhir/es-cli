@@ -10,7 +10,6 @@ import (
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/config"
 )
 
-// NewCmdConfig returns the config parent command.
 func NewCmdConfig(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",

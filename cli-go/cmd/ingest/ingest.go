@@ -6,7 +6,6 @@ import (
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/cmdutil"
 )
 
-// NewCmdIngest returns the ingest parent command.
 func NewCmdIngest(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "ingest",

@@ -37,7 +37,6 @@ Examples:
 			reader := bufio.NewReader(os.Stdin)
 			out := f.IOStreams.Out
 
-			// Prompt for URL.
 			fmt.Fprint(out, "Elasticsearch URL: ")
 			urlStr, _ := reader.ReadString('\n')
 			urlStr = strings.TrimSpace(urlStr)
@@ -45,7 +44,6 @@ Examples:
 				return fmt.Errorf("URL is required")
 			}
 
-			// Prompt for auth method.
 			fmt.Fprint(out, "Auth method (basic/api-key/bearer) [basic]: ")
 			authMethod, _ := reader.ReadString('\n')
 			authMethod = strings.TrimSpace(authMethod)
@@ -96,7 +94,6 @@ Examples:
 				return fmt.Errorf("invalid auth method: %s (use basic, api-key, or bearer)", authMethod)
 			}
 
-			// Prompt for TLS options.
 			fmt.Fprint(out, "CA certificate path (leave empty for default): ")
 			caCert, _ := reader.ReadString('\n')
 			caCert = strings.TrimSpace(caCert)
@@ -111,7 +108,6 @@ Examples:
 				profile.Insecure = true
 			}
 
-			// Test the connection.
 			fmt.Fprintln(out, "Testing connection...")
 			resolved := &config.ResolvedConfig{
 				URL:        profile.URL,
@@ -136,7 +132,6 @@ Examples:
 
 			fmt.Fprintf(out, "Connection successful! Cluster: %s (version %s)\n", info.ClusterName, info.Version.Number)
 
-			// Prompt for profile name.
 			fmt.Fprint(out, "Profile name [default]: ")
 			profileName, _ := reader.ReadString('\n')
 			profileName = strings.TrimSpace(profileName)

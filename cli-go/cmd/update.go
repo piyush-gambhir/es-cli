@@ -19,8 +19,6 @@ import (
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/update"
 )
 
-// Test seams: tests replace these to avoid the network, the real executable,
-// and the real terminal.
 var (
 	checkLatest     = update.CheckNow
 	executablePath  = update.ExecutablePath
@@ -31,7 +29,6 @@ var (
 	}
 )
 
-// updateCheckResult is the `es update --check -o json` document.
 type updateCheckResult struct {
 	CurrentVersion  string `json:"current_version"`
 	LatestVersion   string `json:"latest_version"`
@@ -86,8 +83,6 @@ Examples:
 	return cmd
 }
 
-// installMethodOf reports how the binary at exe was installed; an unknown
-// path counts as a release install.
 func installMethodOf(exe string) update.InstallMethod {
 	if exe == "" {
 		return update.InstallSelf
@@ -197,14 +192,11 @@ func runUpdate(cmd *cobra.Command, yes bool) error {
 	if err := installRelease(cmd.Context(), info.LatestVersion, exe, progress); err != nil {
 		return fmt.Errorf("update failed, es v%s was left in place: %w", info.CurrentVersion, err)
 	}
-	// checkLatest already stored the installed release in the notifier's cache.
 	fmt.Fprintf(w, "Updated es v%s -> v%s\n", info.CurrentVersion, info.LatestVersion)
 	fmt.Fprintf(w, "Release notes: %s\n", notesURL)
 	return nil
 }
 
-// updateBlockedByReadOnly applies the same read-only sources as other mutating
-// commands: --read-only, ES_READ_ONLY, and the profile's read_only.
 func updateBlockedByReadOnly(cmd *cobra.Command) bool {
 	if flagReadOnly {
 		return true
