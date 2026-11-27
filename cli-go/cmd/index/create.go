@@ -50,9 +50,9 @@ Examples:
 
 			err = c.CreateIndex(cmd.Context(), name, body)
 			if err != nil {
-				if ifNotExists && client.IsConflict(err) {
+				if ifNotExists && client.IsAlreadyExists(err) {
 					if !f.Quiet {
-						fmt.Fprintf(f.IOStreams.Out, "Index %s already exists.\n", name)
+						fmt.Fprintf(f.IOStreams.ErrOut, "Index %s already exists.\n", name)
 					}
 					return nil
 				}

@@ -100,7 +100,7 @@ The check runs in the background (one GitHub request a day, cached in `~/.config
 2. **API key**, an API key ID + API key secret (or a single pre-encoded API key).
 3. **Bearer token**, an OAuth/bearer token.
 
-If the authentication method is not stated explicitly (no `auth_method` in the profile), it is **auto-detected** from whichever credentials are present, in this order: bearer token → API key → basic auth.
+Credentials passed by flag or environment variable choose the method, detected in this order: bearer token → API key → basic auth. Otherwise the profile's `auth_method` is used, and if the profile has none, it is **auto-detected** from whichever credentials are present, in the same order.
 
 ### Interactive login
 
@@ -560,7 +560,7 @@ es index create <index> [flags]
 Create a new index, optionally with settings and mappings from a file.
 
 - `-f, --file <path>`, JSON/YAML body with settings/mappings (use `-` for stdin).
-- `--if-not-exists`, succeed silently if the index already exists (409 conflict is swallowed).
+- `--if-not-exists`, skip creation if the index already exists, printing a notice on stderr (the `resource_already_exists_exception` error is swallowed).
 
 ```bash
 es index create my-index
@@ -1052,7 +1052,7 @@ es ingest create <name> -f <path> [flags]
 Create an ingest pipeline from a definition file (`-f` is required).
 
 - `-f, --file <path>`, JSON/YAML pipeline definition (use `-` for stdin). Required.
-- `--if-not-exists`, succeed silently if the pipeline already exists.
+- `--if-not-exists`, skip creation if the pipeline already exists, printing a notice on stderr (checked first, so an existing pipeline is never replaced).
 
 ```bash
 es ingest create my-pipeline -f pipeline.json
@@ -1125,7 +1125,7 @@ es ilm create <name> -f <path> [flags]
 Create an ILM policy from a definition file (`-f` is required).
 
 - `-f, --file <path>`, JSON/YAML policy definition (use `-` for stdin). Required.
-- `--if-not-exists`, succeed silently if the policy already exists.
+- `--if-not-exists`, skip creation if the policy already exists, printing a notice on stderr (checked first, so an existing policy is never replaced).
 
 ```bash
 es ilm create my-policy -f policy.json
@@ -1238,7 +1238,7 @@ Profile fields: `url`, `auth_method`, `username`, `password`, `api_key_id`, `api
 
 - The active profile is `current_profile`. Its values are used whenever a setting is not supplied by a flag or env var (see precedence above).
 - `--profile <name>` overrides the active profile for a single command.
-- `auth_method` may be left empty to auto-detect from the credentials present (bearer → api_key → basic).
+- `auth_method` may be left empty to auto-detect from the credentials present (bearer → api_key → basic). Credentials given by flag or env var override it.
 - A profile may set `read_only: true` to make that profile a safe, read-only connection by default (mutating commands are blocked). Remove the profile setting explicitly before permitting writes.
 
 Managing profiles:
@@ -1258,7 +1258,7 @@ These are especially relevant for automation and LLM agents:
 - **Read-only mode**, `--read-only`, `ES_READ_ONLY=true`, or profile `read_only: true` blocks every mutating command (create/update/delete/open/close/rollover/reindex/bulk/index-document/`settings --set`/`mappings -f`). A blocked command exits with an error explaining how to disable the guard.
 - **No-input mode**, `--no-input` or `ES_NO_INPUT` disables all interactive prompts. Combine with `--confirm` for destructive commands in CI. `es login` is unavailable in this mode.
 - **Confirmation prompts**, destructive `delete` commands (index, document, alias, template, component-template, ingest pipeline, ILM policy) prompt before acting unless `--confirm` is passed.
-- **Idempotent flags**, `--if-not-exists` on create commands swallows 409 conflicts; `--if-exists` on delete commands swallows 404s. Useful for scripts that should not fail on already-applied state.
+- **Idempotent flags**, `--if-not-exists` on create commands succeeds without changes when the resource already exists, printing a notice on stderr (other errors still fail); `--if-exists` on delete commands swallows 404s. Useful for scripts that should not fail on already-applied state.
 
 ## File input format
 

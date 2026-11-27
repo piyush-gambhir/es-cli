@@ -34,7 +34,7 @@ Examples:
 				return err
 			}
 
-			if len(tasks) == 0 {
+			if len(tasks) == 0 && f.Resolved.Output == "table" {
 				fmt.Fprintln(f.IOStreams.Out, "No pending tasks.")
 				return nil
 			}

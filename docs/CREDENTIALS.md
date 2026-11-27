@@ -639,10 +639,10 @@ Environment variables override profile values but are overridden by CLI flags.
 The CLI auto-detects the auth method based on which variables are set:
 
 - If `ES_TOKEN` is set, uses bearer auth.
-- Else if both `ES_API_KEY_ID` and `ES_API_KEY` are set, uses API key auth.
+- Else if `ES_API_KEY` is set, uses API key auth. `ES_API_KEY_ID` is optional and is only needed for an id plus secret pair.
 - Else if both `ES_USERNAME` and `ES_PASSWORD` are set, uses basic auth.
 
-You do not need to set a separate auth method variable.
+The same applies to the credential flags. Flag and environment credentials take precedence over the profile's `auth_method`. You do not need to set a separate auth method variable.
 
 ### CLI Flags
 

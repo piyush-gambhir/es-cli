@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/piyush-gambhir/es-cli/cli-go/internal/client"
 	"github.com/piyush-gambhir/es-cli/cli-go/internal/cmdutil"
 )
 
@@ -42,11 +43,18 @@ Examples:
 				return err
 			}
 
-			err = c.CreatePipeline(cmd.Context(), args[0], body)
-			if err != nil {
-				if ifNotExists {
+			if ifNotExists {
+				if _, err := c.GetPipeline(cmd.Context(), args[0]); err == nil {
+					if !f.Quiet {
+						fmt.Fprintf(f.IOStreams.ErrOut, "Pipeline %s already exists\n", args[0])
+					}
 					return nil
+				} else if !client.IsNotFound(err) {
+					return err
 				}
+			}
+
+			if err := c.CreatePipeline(cmd.Context(), args[0], body); err != nil {
 				return err
 			}
 
