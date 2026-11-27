@@ -28,8 +28,13 @@ func (c *Client) ListIndices(ctx context.Context, pattern, health, status string
 	if health != "" {
 		path += "&health=" + health
 	}
+	wantStatus := ""
 	if status != "" {
-		if status == "close" {
+		switch status {
+		case "open":
+			wantStatus = "open"
+		case "close", "closed":
+			wantStatus = "close"
 			status = "closed"
 		}
 		path += "&expand_wildcards=" + status
@@ -42,7 +47,16 @@ func (c *Client) ListIndices(ctx context.Context, pattern, health, status string
 	if err := resp.JSON(&indices); err != nil {
 		return nil, err
 	}
-	return indices, nil
+	if wantStatus == "" {
+		return indices, nil
+	}
+	filtered := []CatIndex{}
+	for _, i := range indices {
+		if i.Status == wantStatus {
+			filtered = append(filtered, i)
+		}
+	}
+	return filtered, nil
 }
 
 func (c *Client) CreateIndex(ctx context.Context, name string, body interface{}) error {

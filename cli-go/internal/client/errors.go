@@ -7,6 +7,7 @@ import (
 
 type APIError struct {
 	StatusCode int
+	Type       string
 	Message    string
 	URL        string
 }
@@ -29,9 +30,9 @@ func IsForbidden(err error) bool {
 	return false
 }
 
-func IsConflict(err error) bool {
+func IsAlreadyExists(err error) bool {
 	if apiErr, ok := err.(*APIError); ok {
-		return apiErr.StatusCode == http.StatusConflict
+		return apiErr.StatusCode == http.StatusBadRequest && apiErr.Type == "resource_already_exists_exception"
 	}
 	return false
 }

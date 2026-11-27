@@ -72,6 +72,9 @@ func (c *Client) GetHotThreads(ctx context.Context, nodeID string) (string, erro
 	if err != nil {
 		return "", err
 	}
+	if resp.StatusCode() >= 400 {
+		return "", resp.Error()
+	}
 	body, err := resp.RawBody()
 	if err != nil {
 		return "", err

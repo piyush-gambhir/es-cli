@@ -1,6 +1,7 @@
 package cmdutil
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -34,8 +35,13 @@ func UnmarshalInput(path string, v interface{}) error {
 
 	trimmed := strings.TrimSpace(string(data))
 	if strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[") {
-		if err := json.Unmarshal(data, v); err != nil {
+		dec := json.NewDecoder(bytes.NewReader(data))
+		dec.UseNumber()
+		if err := dec.Decode(v); err != nil {
 			return fmt.Errorf("parsing JSON: %w", err)
+		}
+		if _, err := dec.Token(); err != io.EOF {
+			return fmt.Errorf("parsing JSON: unexpected data after top-level value")
 		}
 		return nil
 	}

@@ -23,6 +23,7 @@ func (r *Response) JSON(v interface{}) error {
 		msg := extractErrorMessage(body)
 		return &APIError{
 			StatusCode: r.HTTPResponse.StatusCode,
+			Type:       extractErrorType(body),
 			Message:    msg,
 			URL:        r.RequestURL,
 		}
@@ -52,6 +53,7 @@ func (r *Response) Error() error {
 		msg := extractErrorMessage(body)
 		return &APIError{
 			StatusCode: r.HTTPResponse.StatusCode,
+			Type:       extractErrorType(body),
 			Message:    msg,
 			URL:        r.RequestURL,
 		}
@@ -66,6 +68,18 @@ func (r *Response) StatusCode() int {
 func (r *Response) RawBody() ([]byte, error) {
 	defer r.HTTPResponse.Body.Close()
 	return readAllLimited(r.HTTPResponse.Body)
+}
+
+func extractErrorType(body []byte) string {
+	var esErr struct {
+		Error struct {
+			Type string `json:"type"`
+		} `json:"error"`
+	}
+	if json.Unmarshal(body, &esErr) != nil {
+		return ""
+	}
+	return esErr.Error.Type
 }
 
 func extractErrorMessage(body []byte) string {

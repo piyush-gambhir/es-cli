@@ -79,7 +79,7 @@ make fmt     # gofmt
 │   │   ├── client.go       # Base client (auth, headers, HTTP methods)
 │   │   ├── transport.go    # Custom HTTP transport (TLS, verbose logging)
 │   │   ├── response.go     # Response handling
-│   │   ├── errors.go       # Error types and helpers (IsNotFound, IsConflict)
+│   │   ├── errors.go       # Error types and helpers (IsNotFound, IsAlreadyExists)
 │   │   ├── cluster.go      # Cluster API methods
 │   │   ├── indices.go      # Index API methods
 │   │   ├── aliases.go      # Alias API methods

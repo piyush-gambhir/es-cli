@@ -65,7 +65,14 @@ func Resolve(flagURL, flagUsername, flagPassword, flagAPIKeyID, flagAPIKey, flag
 		rc.Insecure = profile.Insecure
 	}
 
-	if profile != nil {
+	rc.AuthMethod = detectAuthMethod(&ResolvedConfig{
+		Username: firstNonEmpty(flagUsername, os.Getenv("ES_USERNAME")),
+		Password: firstNonEmpty(flagPassword, os.Getenv("ES_PASSWORD")),
+		APIKeyID: firstNonEmpty(flagAPIKeyID, os.Getenv("ES_API_KEY_ID")),
+		APIKey:   firstNonEmpty(flagAPIKey, os.Getenv("ES_API_KEY")),
+		Token:    firstNonEmpty(flagToken, os.Getenv("ES_TOKEN")),
+	})
+	if rc.AuthMethod == "" && profile != nil {
 		rc.AuthMethod = profile.AuthMethod
 	}
 	if rc.AuthMethod == "" {

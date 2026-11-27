@@ -20,7 +20,7 @@ func AddPaginationFlags(cmd *cobra.Command, page, limit *int) {
 }
 
 func AddIfNotExistsFlag(cmd *cobra.Command, ifNotExists *bool) {
-	cmd.Flags().BoolVar(ifNotExists, "if-not-exists", false, "Succeed silently if resource already exists (409 conflict)")
+	cmd.Flags().BoolVar(ifNotExists, "if-not-exists", false, "Skip creation if the resource already exists (prints a notice on stderr)")
 }
 
 func AddIfExistsFlag(cmd *cobra.Command, ifExists *bool) {
